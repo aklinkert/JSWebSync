@@ -99,6 +99,13 @@ var PathObject = function ( messageOrParts ) {
 	this.exprParam = /(\w+)([<>=])(.+)/i;
 	
 	/**
+	 * @private
+	 * @constant
+	 * @description RegularExpression zum pr&uuml;fen von Hash-Identifiern.
+	 */
+	this.exprHash = /(-?\d(?:.\d)?)/i;
+	
+	/**
 	 * @function
 	 * @private
 	 * @param {Object} parts Die Informationen zu dem zu bauenden Path.
@@ -130,7 +137,8 @@ var PathObject = function ( messageOrParts ) {
 				throw new ErrorObject ( "PathObject", "buildPath", "Beim bauen des Paths ist ein Fehler aufgetreten: Ungültiger Identifier: " + index + "@" + parts [ "identifier" ] [ index ] + "!" );
 			
 			var ident = parts [ "identifier" ] [ index ];
-			if ( index != 0 )
+			var res = ident.match ( this.exprHash );
+			if ( res == null )
 				ident = this.mask ( ident );
 			temp += ident + "@" + index;
 		}
@@ -217,12 +225,18 @@ var PathObject = function ( messageOrParts ) {
 		
 		if ( parts_message [ 1 ] == "fail" ) {
 			this.fail = true;
-			this.informations.values [ "value" ] = parts_message [ 2 ];
+			this.informations =
+				{
+					values:
+						{
+							value: parts_message [ 2 ]
+						}
+				};
 			return;
 		}
 		
 		this.analyzePath ( parts_message [ 2 ] );
-		this.command = parts_message [ 1 ];
+		this.informations.command = parts_message [ 1 ];
 	};
 	
 	/**
@@ -232,7 +246,12 @@ var PathObject = function ( messageOrParts ) {
 	 * @description Verarbeitet den &uuml;bergebenen String.
 	 */
 	this.analyzePath = function ( path ) {
-		this.path = path;
+		
+		var splitRes = this.splitSafe ( path , " " );
+		if ( splitRes.length == 2 )
+			this.path = splitRes [ 0 ];
+		else
+			this.path = path;
 		
 		path = path.match ( this.exprPath );
 		if ( path == null )
@@ -282,7 +301,8 @@ var PathObject = function ( messageOrParts ) {
 				
 				if ( matchres [ 1 ] == "_order" )
 					order [ this.unmask ( matchres [ 3 ] ) ] = ( matchres [ 2 ] == "<" ) ? "desc" : "asc";
-				else parameters [ matchres [ 1 ] ] = this.unmask ( matchres [ 3 ] );
+				else
+					parameters [ matchres [ 1 ] ] = this.unmask ( matchres [ 3 ] );
 			}
 		}
 		
@@ -299,16 +319,21 @@ var PathObject = function ( messageOrParts ) {
 				};
 		}
 		
-		var values = null;
+		var values = new Array ( );
 		if ( typeof path [ 5 ] != "undefined" ) {
 			var tmpres = this.splitSafe ( path [ 5 ] , "," );
 			
-			if ( columns == null || tmpres.length > columns.length )
+			if ( columns.length == 0 && tmpres.length == 1 && type.indexOf ( "_" ) != - 1 ) {
+				values [ "value" ] = this.unmask ( tmpres [ 0 ] );
+				
+			} else if ( columns.length == 0 || tmpres.length > columns.length ) {
 				throw new ErrorObject ( "PathObject", "analyzePath", "Verarbeiten der eingehenden Nachricht fehlgeschlagen: Die Anzahl der columns ist nicht gleich der Anzahl der values!" );
-			
-			values = new Array ( );
-			for ( var i = 0 ; i < tmpres.length ; i ++ )
-				values [ columns [ i ] ] = tmpres [ i ];
+				
+			} else {
+				for ( var i = 0 ; i < tmpres.length ; i ++ )
+					values [ columns [ i ] ] = this.unmask ( tmpres [ i ] );
+				
+			}
 		}
 		
 		this.informations =
@@ -328,7 +353,7 @@ var PathObject = function ( messageOrParts ) {
 	 * @private
 	 * @param {String} str Die zu verarbeitende Message.
 	 * @param {String} seperator Der seperator, an dem getrennt werden soll.
-	 * @returns String
+	 * @returns Array
 	 * @description Trennt str an seperator, wobei nur ausserhalb von Bereichen in Anf&uuml;hrungszeichen getrennt wird.
 	 */
 	this.splitSafe = function ( str , seperator ) {
@@ -381,6 +406,20 @@ var PathObject = function ( messageOrParts ) {
 	};
 	
 	/**
+	 * @private
+	 * @function
+	 * @param {Array} toMaskArr Ein Array mit zu maskierenden Strings.
+	 * @returns Array
+	 * @description Maskiert alle Eintr&auml;ge eines Arrays.
+	 */
+	this.maskEach = function ( toMaskArr ) {
+		for ( var index in toMaskArr )
+			toMaskArr [ index ] = this.unmask ( toMaskArr [ index ] );
+		
+		return toMaskArr;
+	};
+	
+	/**
 	 * @function
 	 * @private
 	 * @param {String} strToUnmask Der zu maskierende String.
@@ -406,6 +445,20 @@ var PathObject = function ( messageOrParts ) {
 		}
 		
 		return strResult;
+	};
+	
+	/**
+	 * @private
+	 * @function
+	 * @param {Array} toUnMaskArr Ein Array mit zu unmaskierenden Strings.
+	 * @returns Array
+	 * @description Unmaskiert alle Eintr&auml;ge eines Arrays.
+	 */
+	this.unmaskEach = function ( toUnMaskArr ) {
+		for ( var index in toUnMaskArr )
+			toUnMaskArr [ index ] = this.unmask ( toUnMaskArr [ index ] );
+		
+		return toUnMaskArr;
 	};
 	
 	/**
@@ -458,7 +511,7 @@ var PathObject = function ( messageOrParts ) {
 	 */
 	this.getIdentifierAtLayer = function ( layer ) {
 		if ( typeof this.informations.identifiers [ layer ] != "undefined" ) {
-			return this.informations.identifiers;
+			return this.informations.identifiers [ layer ];
 		} else {
 			return null;
 		}
@@ -498,11 +551,22 @@ var PathObject = function ( messageOrParts ) {
 	/**
 	 * @function
 	 * @public
-	 * @returns {String} Der Value des paths.
-	 * @description Gibt den Value des paths zur&uuml;ck.
+	 * @returns {String} Die Values des paths.
+	 * @description Gibt die Values des paths zur&uuml;ck.
 	 */
 	this.getValues = function ( ) {
 		return this.informations.values;
+	};
+	
+	/**
+	 * @function
+	 * @public
+	 * @returns {String} Der Value des paths.
+	 * @description Gibt den Value des paths zur&uuml;ck, falls es ein Multirequest ist.
+	 */
+	this.getSingleValue = function ( ) {
+		if ( ! isUndefined ( this.informations.values [ "value" ] ) )
+			return this.informations.values [ "value" ];
 	};
 	
 	/**
@@ -595,11 +659,11 @@ var PathObject = function ( messageOrParts ) {
 	try {
 		if ( this.message != null )
 			this.analyze ( );
-		else this.buildPath ( messageOrParts );
+		else
+			this.buildPath ( messageOrParts );
 		
 		return this;
-	}
-	catch ( e ) {
+	} catch ( e ) {
 		logToConsole ( e.toString ( ) );
 	}
 };

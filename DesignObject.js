@@ -139,8 +139,7 @@ var DesignObject = function ( ) {
 		
 		try {
 			this.connectionHandler.register ( path , this );
-		}
-		catch ( e ) {
+		} catch ( e ) {
 			logError ( "Error during registring path to socket in DesignObject.registerToSocket: " + e.toString ( ) );
 		}
 	};
@@ -158,8 +157,7 @@ var DesignObject = function ( ) {
 		
 		try {
 			this.connectionHandler.unregister ( path , this );
-		}
-		catch ( e ) {
+		} catch ( e ) {
 			logError ( "Error during unregistring path to socket in DesignObject.registerToSocket: " + e.toString ( ) );
 		}
 	};
@@ -230,10 +228,10 @@ var DesignObject = function ( ) {
 			};
 		
 		this.registerEachToSocket ( this.selectChildren ( container , "span" , func ) , function ( obj , pathObj ) {
-			$ ( obj ).html ( pathObj.getValue ( ) );
+			$ ( obj ).html ( pathObj.getSingleValue ( ) );
 		} );
 		this.registerEachToSocket ( this.selectChildren ( container , "img" , func ) , function ( obj , pathObj ) {
-			$ ( obj ).attr ( "src" , pathObj.getValue ( ) );
+			$ ( obj ).attr ( "src" , pathObj.getSingleValue ( ) );
 		} );
 	};
 	
