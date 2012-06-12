@@ -346,7 +346,7 @@ var SocketConnectionHandlerObject = function ( ) {
 		
 		this.registeredObjects [ path ].splice ( index , 1 );
 		
-		delete obj.socketConnectionAnswerCounter;
+		delete obj.socketConnectionAnswerCounter [ path ];
 		
 		if ( this.registeredObjects [ path ].length == 0 ) {
 			delete this.registeredObjects [ path ];
