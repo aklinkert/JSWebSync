@@ -203,9 +203,13 @@ var DesignObject = function ( ) {
 	this.updateChildren = function ( pathObj ) {
 		var path = pathObj.getPath ( );
 		
-		for ( var func in this.registeredFunctions [ path ] )
-			for ( var obj in this.registeredObjects [ path ] )
-				this.registeredFunctions [ path ] [ func ] ( this.registeredObjects [ path ] [ obj ] , pathObj );
+		for ( var indexFunc in this.registeredFunctions [ path ] ) {
+			for ( var indexObj in this.registeredObjects [ path ] ) {
+				var func = this.registeredFunctions [ path  ] [ indexFunc ];
+				var obj = this.registeredObjects [ path ] [ indexObj ];
+				func ( obj , pathObj );
+			}
+		}
 	};
 	
 	/**

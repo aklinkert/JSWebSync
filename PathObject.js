@@ -567,6 +567,10 @@ var PathObject = function ( messageOrParts ) {
 	this.getSingleValue = function ( ) {
 		if ( ! isUndefined ( this.informations.values [ "value" ] ) )
 			return this.informations.values [ "value" ];
+		if ( objectLength ( this.informations.values ) == 1 )
+			for ( var index in this.informations.values )
+				return this.informations.values [ index ];
+		
 	};
 	
 	/**
