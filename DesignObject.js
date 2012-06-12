@@ -205,7 +205,7 @@ var DesignObject = function ( ) {
 		
 		for ( var indexFunc in this.registeredFunctions [ path ] ) {
 			for ( var indexObj in this.registeredObjects [ path ] ) {
-				var func = this.registeredFunctions [ path  ] [ indexFunc ];
+				var func = this.registeredFunctions [ path ] [ indexFunc ];
 				var obj = this.registeredObjects [ path ] [ indexObj ];
 				func ( obj , pathObj );
 			}
@@ -228,7 +228,6 @@ var DesignObject = function ( ) {
 			 * @ignore
 			 */
 			func = function ( obj ) {
-				$ ( obj ).addClass ( "registered" );
 			};
 		
 		this.registerEachToSocket ( this.selectChildren ( container , "span" , func ) , function ( obj , pathObj ) {
@@ -249,7 +248,7 @@ var DesignObject = function ( ) {
 	 * @description Gibt alle KinderObjekte mit dem &uuml;bergebenen HTML-Tag zur&uuml;ck.
 	 */
 	this.selectChildren = function ( container , elementTag , func ) {
-		return container.children ( ).filter ( ":not(.managedContainer)" ).filter ( ":not(.registered)" ).find ( elementTag + '[' + this.spanAttr + ']' ).each ( function ( ) {
+		return container.children ( ).filter ( ":not(.managedContainer)" ).find ( elementTag + '[' + this.spanAttr + ']' ).filter ( ":not(.registered)" ).each ( function ( ) {
 			// Führt die übergebene Funktion aus, falls vorhanden
 			if ( func != null && typeof func == "function" ) {
 				func ( this );
@@ -267,7 +266,7 @@ var DesignObject = function ( ) {
 	 */
 	this.registerEachToSocket = function ( arr , func ) {
 		for ( el in arr )
-			this.registerToSocket ( $ ( arr [ el ] ).attr ( this.spanAttr ) , arr [ el ] , func , true );
+			this.registerToSocket ( $ ( arr [ el ] ).addClass ( "registered" ).attr ( this.spanAttr ) , arr [ el ] , func , true );
 	};
 	
 	/**
