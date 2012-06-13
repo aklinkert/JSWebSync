@@ -315,7 +315,8 @@ var SocketConnectionHandlerObject = function ( ) {
 		
 		this.registeredObjects [ path ].push ( obj );
 		
-		if ( this.registeredObjects [ path ].length == 1 )
+		if ( this.registeredObjects [ path ].length == 1 && ! this.cache.isCachedValue ( path ) )
+			
 			this.send (
 				{
 				message: "regget " + path ,
@@ -324,6 +325,7 @@ var SocketConnectionHandlerObject = function ( ) {
 				} );
 		else
 			this.dispatchFromCache ( path );
+		
 	};
 	
 	/**
