@@ -21,6 +21,13 @@ var PathObject = function ( messageOrParts ) {
 	
 	/**
 	 * @private
+	 * @default String
+	 * @description Der kurze Path bestehend aus Identifier, Objecttype und field(s).
+	 */
+	this.shortpath = "";
+	
+	/**
+	 * @private
 	 * @default Object
 	 * @default Das interne Informations-Object, in das Informationen eingelesen werden und aus dem die Informationen in
 	 *          den Getter-Methoden ausgelesen werden.
@@ -76,6 +83,13 @@ var PathObject = function ( messageOrParts ) {
 	 * @description RegularExpression zum matchen des Paths der eingehenden mesaage.
 	 */
 	this.exprPath = /(.+@\d+)\/([\w\/]+)(?:\?((?:(?:\w+='.+')|(?:\w+[<>]{1}\w+))(?:&\w+[=<>]'.+')*))?(?:#(\d+\-\d+))?(?: ((?:'.+'(?:,'.+')*)))?/i;
+	
+	/**
+	 * @private
+	 * @constant
+	 * @description RegularExpression zum matchen des shortpaths.
+	 */
+	this.exprShortPath = /(.+@\d+\/[\w\/]+)/i;
 	
 	/**
 	 * @private
@@ -180,6 +194,7 @@ var PathObject = function ( messageOrParts ) {
 				this.path += "," + parts [ "values" ].shift ( );
 		}
 		
+		this.shortpath = this.path.match ( this.exprShortPath ) [ 1 ];
 	};
 	
 	/**
@@ -235,6 +250,7 @@ var PathObject = function ( messageOrParts ) {
 			return;
 		}
 		
+		this.shortpath = parts_message [ 2 ].match ( this.exprShortPath ) [ 1 ];
 		this.analyzePath ( parts_message [ 2 ] );
 		this.informations.command = parts_message [ 1 ];
 	};
@@ -469,6 +485,16 @@ var PathObject = function ( messageOrParts ) {
 	 */
 	this.getPath = function ( ) {
 		return this.path;
+	};
+	
+	/**
+	 * @function
+	 * @public
+	 * @returns {String} path
+	 * @description Gibt den shortpath zur&uuml;ck.
+	 */
+	this.getShortPath = function ( ) {
+		return this.shortpath;
 	};
 	
 	/**

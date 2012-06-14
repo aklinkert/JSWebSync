@@ -203,7 +203,7 @@ var DesignObject = function ( ) {
 	 *              wird dabei als Parameter &uuml;bergeben.
 	 */
 	this.updateChildren = function ( pathObj ) {
-		var path = pathObj.getPath ( );
+		var path = pathObj.getShortPath ( );
 		
 		for ( var indexFunc in this.registeredFunctions [ path ] ) {
 			for ( var indexObj in this.registeredObjects [ path ] ) {

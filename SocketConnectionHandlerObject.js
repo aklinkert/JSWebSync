@@ -391,7 +391,7 @@ var SocketConnectionHandlerObject = function ( ) {
 	 * @description Verteilt einkommende Messages an die Listener, die sich daf&uuml;r registriert haben.
 	 */
 	this.dispatch = function ( pathObj ) {
-		var path = pathObj.getPath ( );
+		var path = pathObj.getShortPath ( );
 		
 		for ( index in this.registeredObjects [ path ] ) {
 			if ( ( this.registeredObjects [ path ] [ index ].socketConnectionAnswerCounter [ path ] < this.cache.getCachedValueSize ( pathObj ) ) || pathObj.getCommand ( ) != "def" ) {
