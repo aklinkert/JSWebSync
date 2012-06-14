@@ -137,10 +137,12 @@ var DesignObject = function ( ) {
 		if ( this.registeredObjects [ path ].indexOf ( obj ) == - 1 )
 			this.registeredObjects [ path ].push ( obj );
 		
-		try {
-			this.connectionHandler.register ( path , this );
-		} catch ( e ) {
-			logError ( "Error during registring path to socket in DesignObject.registerToSocket: " + e.toString ( ) );
+		if ( this.registeredObjects [ path ].length == 1 ) {
+			try {
+				this.connectionHandler.register ( path , this );
+			} catch ( e ) {
+				logError ( "Error during registring path to socket in DesignObject.registerToSocket: " + e.toString ( ) );
+			}
 		}
 	};
 	
