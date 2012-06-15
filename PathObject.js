@@ -159,8 +159,11 @@ var PathObject = function ( messageOrParts ) {
 		this.path += temp;
 		
 		this.path += "/" + parts [ "type" ];
-		for ( var index in parts [ "columns" ] ) {
-			this.path += "/" + parts [ "columns" ] [ index ];
+		
+		if ( parts [ "columns" ].length > 0 ) {
+			this.path += "/" + parts [ "columns" ].shift ( );
+			while ( parts [ "columns" ].size > 0 )
+				this.path += "," + parts [ "columns" ].shift ( );
 		}
 		
 		if ( ( "order" in parts && objectLength ( parts [ "order" ] ) > 0 ) || ( "fields" in parts && objectLength ( parts [ "fields" ] ) > 0 ) ) {
@@ -222,7 +225,7 @@ var PathObject = function ( messageOrParts ) {
 			this.transaction = true;
 			this.transactionID = trans_parts [ 1 ];
 			
-			if ( trans_parts [ 2 ] == "auth" || trans_parts [ 2 ] == "unauth" ) {
+			if ( trans_parts [ 2 ] == "auth" || trans_parts [ 2 ] == "unauth" || trans_parts [ 2 ] == "getnewid" ) {
 				this.informations =
 					{
 					command: trans_parts [ 2 ] ,
