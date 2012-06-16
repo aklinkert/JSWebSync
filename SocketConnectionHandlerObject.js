@@ -306,26 +306,28 @@ var SocketConnectionHandlerObject = function ( ) {
 	this.register = function ( path , obj ) {
 		if ( typeof this.registeredObjects [ path ] != "object" )
 			this.registeredObjects [ path ] = new Array ( );
-		else if ( this.registeredObjects [ path ].indexOf ( obj ) != - 1 )
-			throw new ErrorObject ( "SocketConnectionHandlerObject", "register", "Object registering for path " + path + " already in Array." );
-		
-		if ( typeof obj.socketConnectionAnswerCounter == "undefined" )
-			obj.socketConnectionAnswerCounter = new Array ( );
-		obj.socketConnectionAnswerCounter [ path ] = 0;
-		
-		this.registeredObjects [ path ].push ( obj );
-		
-		if ( this.registeredObjects [ path ].length == 1 && ! this.cache.isCachedValue ( path ) )
+		if ( this.registeredObjects [ path ].indexOf ( obj ) != - 1 ) {
 			
-			this.send (
-				{
-				message: "regget " + path ,
-				flags: new Array ( "authRequired" ) ,
-				nocache: false
-				} );
-		else
-			this.dispatchFromCache ( path );
-		
+			obj.update ( this.cache.getCachedValue ( path ) );
+			
+		} else {
+			if ( typeof obj.socketConnectionAnswerCounter == "undefined" )
+				obj.socketConnectionAnswerCounter = new Array ( );
+			obj.socketConnectionAnswerCounter [ path ] = 0;
+			
+			this.registeredObjects [ path ].push ( obj );
+			
+			if ( this.registeredObjects [ path ].length == 1 && ! this.cache.isCachedValue ( path ) )
+				
+				this.send (
+					{
+					message: "regget " + path ,
+					flags: new Array ( "authRequired" ) ,
+					nocache: false
+					} );
+			else
+				this.dispatchFromCache ( path );
+		}
 	};
 	
 	/**
