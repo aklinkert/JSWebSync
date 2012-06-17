@@ -181,7 +181,7 @@ var PathObject = function ( messageOrParts ) {
 				if ( temp != "" )
 					temp += "&";
 				
-				temp += "order" + ( ( parts [ "order" ] [ index ] == "desc" ) ? ">" : "<" ) + "'" + index + "'";
+				temp += "_order" + ( ( parts [ "order" ] [ index ] == "desc" ) ? ">" : "<" ) + "'" + index + "'";
 			}
 			
 			this.path += temp;
