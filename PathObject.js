@@ -82,7 +82,7 @@ var PathObject = function ( messageOrParts ) {
 	 * @constant
 	 * @description RegularExpression zum matchen des Paths der eingehenden mesaage.
 	 */
-	this.exprPath = /(.+@\d+)\/([\w\/]+)(?:\?((?:(?:\w+='.+')|(?:\w+[<>]{1}\w+))(?:&\w+[=<>]'.+')*))?(?:#(\d+\-\d+))?(?: ((?:'.+'(?:,'.+')*)))?/i;
+	this.exprPath = /(.+@\d+)\/([\w\/]+)(?:\?((?:(?:\w+='.*')|(?:\w+[<>]{1}\w+))(?:&\w+[=<>]'.*')*))?(?:#(\d+\-\d+))?(?: ((?:'.*'(?:,'.*')*)))?/i;
 	
 	/**
 	 * @private
@@ -103,7 +103,7 @@ var PathObject = function ( messageOrParts ) {
 	 * @constant
 	 * @description RegularExpression zum matchen von Maskierten Werten.
 	 */
-	this.exprMask = /'(.+)'/i;
+	this.exprMask = /'(.*)'/i;
 	
 	/**
 	 * @private
@@ -385,7 +385,7 @@ var PathObject = function ( messageOrParts ) {
 		
 		var result = new Array ( );
 		if ( typeof str == "undefined" || str.indexOf ( seperator ) == - 1 ) {
-			result.push ( str );
+			result.push ( this.unmask ( str ) );
 			return result;
 		}
 		
@@ -395,7 +395,11 @@ var PathObject = function ( messageOrParts ) {
 			if ( arr [ pos ] == "'" && ( pos == 0 || arr [ pos - 1 ] != "\\" ) )
 				opened = ! opened;
 			else if ( arr [ pos ] == seperator && opened == false ) {
-				result.push ( arr.slice ( 0 , pos ).join ( "" ) );
+				if ( pos == 1 )
+					result.push ( "" );
+				else
+					result.push ( arr.slice ( 0 , pos ).join ( "" ) );
+				
 				arr.splice ( 0 , pos + 1 );
 				pos = - 1;
 			}
