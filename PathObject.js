@@ -103,7 +103,7 @@ var PathObject = function ( messageOrParts ) {
 	 * @constant
 	 * @description RegularExpression zum matchen von Maskierten Werten.
 	 */
-	this.exprMask = /'(.*)'/i;
+	this.exprMask = /^'(.*)'$/i;
 	
 	/**
 	 * @private
@@ -384,11 +384,12 @@ var PathObject = function ( messageOrParts ) {
 			return null;
 		
 		var result = new Array ( );
+		/*
 		if ( typeof str == "undefined" || str.indexOf ( seperator ) == - 1 ) {
 			result.push ( this.unmask ( str ) );
 			return result;
 		}
-		
+		*/
 		var arr = str.split ( "" );
 		var opened = false;
 		for ( var pos = 0 ; pos < arr.length ; pos ++ ) {
