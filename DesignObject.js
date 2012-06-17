@@ -230,12 +230,16 @@ var DesignObject = function ( ) {
 			func = function ( obj ) {
 			};
 		
-		this.registerEachToSocket ( this.selectChildren ( container , "span" , func ) , function ( obj , pathObj ) {
-			$ ( obj ).html ( pathObj.getSingleValue ( ) );
-		} );
-		this.registerEachToSocket ( this.selectChildren ( container , "img" , func ) , function ( obj , pathObj ) {
-			$ ( obj ).attr ( "src" , pathObj.getSingleValue ( ) );
-		} );
+		this.registerEachToSocket ( this.selectChildren ( container , "span" , func ) , this.updateDefaultSpan );
+		this.registerEachToSocket ( this.selectChildren ( container , "img" , func ) , this.updateDefaultImage );
+	};
+	
+	this.updateDefaultSpan = function ( obj , pathObj ) {
+		obj.innerHTML = pathObj.getSingleValue ( );
+	};
+	
+	this.updateDefaultImage = function ( obj , pathObj ) {
+		obj.src = pathObj.getSingleValue ( );
 	};
 	
 	/**
