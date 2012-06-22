@@ -37,6 +37,20 @@ var SocketConnectionHandlerObject = function ( ) {
 	
 	/**
 	 * @private
+	 * @default Array
+	 * @description Buffer f&uuml;r eingehende Nachrichten.
+	 */
+	this.recievedMessageBuffer = new Array ( );
+	
+	/**
+	 * @private
+	 * @default Integer
+	 * @description Gibt an, wie viele Nachrichten vom Stack verarbeitet werden sollen.
+	 */
+	this.workFromStackRecievedMessages = 10;
+	
+	/**
+	 * @private
 	 * @default CacheObject
 	 * @description Instanz von {@link CacheObjekte} zum Cachen der Daten.
 	 */
@@ -90,6 +104,13 @@ var SocketConnectionHandlerObject = function ( ) {
 	 *              Settings gelöscht oder wiederholt ausgeführt.
 	 */
 	this.flagListener = new Array ( );
+	
+	/**
+	 * @private
+	 * @default Null
+	 * @description Der Speicher f&uuml;r das Interval um die Nachrichten vom Stapel zu verarbeiten.
+	 */
+	this.interval = null;
 	
 	// ################################################################
 	// ----------Funktionen: various-----------------------------------
@@ -152,6 +173,14 @@ var SocketConnectionHandlerObject = function ( ) {
 		this.sockconn.getReadyState = function ( ) {
 			return this.readyState;
 		};
+		
+		if ( this.interval != null )
+			window.clearTimeout ( this.interval );
+		
+		var thatConnectionHandler = this;
+		this.interval = window.setInterval ( function ( ) {
+			thatConnectionHandler.handleMessageFromBuffer ( );
+		} , 50 );
 	};
 	
 	/**
@@ -165,6 +194,12 @@ var SocketConnectionHandlerObject = function ( ) {
 		
 		if ( this.sockconn.getReadyState ( ) != 3 )
 			throw new ErrorObject ( "SocketConnectionHandlerObject", "close", "Closing the WebSocket-Connection unsuccessful." );
+		
+		if ( this.interval != null ) {
+			window.clearTimeout ( this.interval );
+			this.interval = null;
+		}
+		
 	};
 	
 	// ################################################################
@@ -227,6 +262,19 @@ var SocketConnectionHandlerObject = function ( ) {
 	/**
 	 * @function
 	 * @private
+	 * @param {String} message Die zu sendende Nachricht.
+	 * @description Sendet eine Nachricht direkt &uuml;ber die WebSocket-Verbindung via send(settings).
+	 */
+	this.sendDirect = function ( message ) {
+		this.send (
+			{
+				"message": message
+			} );
+	};
+	
+	/**
+	 * @function
+	 * @private
 	 * @description Sendet im Buffer befindliche Nachrichten mit der send()-Methode. Wird aufgerufen, wenn eine
 	 *              WebSocket-Verbindung hergestellt wird.
 	 */
@@ -273,18 +321,34 @@ var SocketConnectionHandlerObject = function ( ) {
 	 * @function
 	 * @private
 	 * @param {String} msg Die empfangene Nachricht.
-	 * @description Verarbeitet &uuml;ber die WebSocket-Verbindung kommende Nachrichten.
+	 * @description Verarbeitet &uuml;ber die WebSocket-Verbindung kommende Nachrichten. Diese werden an das lokale
+	 *              Array der zu verarbeitenden Messages angeh&auml;ngt.
 	 */
 	this.handleMessage = function ( msg ) {
-		var obj = new PathObject ( msg );
+		this.recievedMessageBuffer.push ( new PathObject ( msg ) );
+	};
+	
+	/**
+	 * @function
+	 * @private
+	 * @description Verarbeitet eine bestimmte Anzahl an Nachrichten vom Buffer.
+	 */
+	this.handleMessageFromBuffer = function ( ) {
 		
-		if ( obj.isTransaction ( ) ) {
-			var index = "trans" + obj.getTransID ( ) + "";
-			this.transactions [ index ].update ( obj );
-			delete ( this.transactions [ index ] );
-		} else {
-			this.cache.addCachedValue ( obj );
-			this.dispatch ( obj );
+		for ( var counter = 0 ; counter < this.workFromStackRecievedMessages ; counter ++ ) {
+			if ( this.recievedMessageBuffer.length == 0 )
+				return;
+			
+			var obj = this.recievedMessageBuffer.shift ( );
+			
+			if ( obj.isTransaction ( ) ) {
+				var index = "trans" + obj.getTransID ( ) + "";
+				this.transactions [ index ].update ( obj );
+				delete ( this.transactions [ index ] );
+			} else {
+				this.cache.addCachedValue ( obj );
+				this.dispatch ( obj );
+			}
 		}
 		
 	};
@@ -337,7 +401,6 @@ var SocketConnectionHandlerObject = function ( ) {
 	 * @param {WebtouchDesignObject} obj Der Listener, der entfernt werden soll.
 	 * @description Entfernt ein Listener (WebtouchDesignObject) aus der Liste registrierter Objekte.
 	 */
-	
 	this.unregister = function ( path , obj ) {
 		if ( typeof obj == "undefined" )
 			throw new ErrorObject ( "SocketConnectionHandlerObject", "unregister", "Invalid parameter." );
