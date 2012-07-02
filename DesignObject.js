@@ -108,7 +108,7 @@ var DesignObject = function ( ) {
 	/**
 	 * @function
 	 * @private
-	 * @param {String} path WebTouchDataPath, der Registriert werden soll
+	 * @param {PathObject|String} pathObj WebTouchDataPath, der Registriert werden soll
 	 * @param {Object} obj Das Object, das f&uuml;r den path registriert werden soll
 	 * @param {Function} func Die Function, die auf das Object angewendet werden soll.
 	 * @returns {Boolean} Gibt zur&uuml;ck, ob der Vorgang erfolgreich war
@@ -117,7 +117,10 @@ var DesignObject = function ( ) {
 	 *              auch noch das Object, das das Update erhalten soll, und eine Funktion, der das Object und der Path
 	 *              &uuml;bergeben werden und die daraufhin "irgendwelche Magic" mit dem Object macht, &uuml;bergeben.
 	 */
-	this.registerToSocket = function ( path , obj , func ) {
+	this.registerToSocket = function ( pathObj , obj , func ) {
+		
+		var path = ( pathObj instanceof PathObject ) ? pathObj.getShortPath ( ) : pathObj;
+		
 		if ( ( typeof path == "undefined" ) || ( typeof obj == "undefined" ) || ( typeof func == "undefined" ) )
 			throw new ErrorObject ( "DesignObject", "registerToSocket", "IllegalArguments" );
 		
@@ -138,7 +141,7 @@ var DesignObject = function ( ) {
 			this.registeredObjects [ path ].push ( obj );
 		
 		try {
-			this.connectionHandler.register ( path , this );
+			this.connectionHandler.register ( pathObj , this );
 		} catch ( e ) {
 			logError ( "Error during registring path to socket in DesignObject.registerToSocket: " + e.toString ( ) );
 		}
@@ -147,16 +150,19 @@ var DesignObject = function ( ) {
 	/**
 	 * @function
 	 * @private
-	 * @param {String} path WebTouchDataPath, der Unregistriert werden soll
+	 * @param {PathObject|String} pathObj WebTouchDataPath, der Unregistriert werden soll
 	 * @param {Object} obj Das Object, das f&uuml;r den path registriert werden sollte
 	 * @returns {Boolean} Gibt zur&uuml;ck, ob der Vorgang erfolgreich war
 	 * @description Unregistriert einen Pfad bei dem {@link SocketConnectionHandlerObject}.
 	 */
-	this.unregisterFromSocket = function ( path , obj ) {
+	this.unregisterFromSocket = function ( pathObj , obj ) {
+		
+		var path = ( pathObj instanceof PathObject ) ? pathObj.getShortPath ( ) : pathObj;
+		
 		delete this.registeredObjects [ path ] [ this.registeredObjects [ path ].indexOf ( obj ) ];
 		
 		try {
-			this.connectionHandler.unregister ( path , this );
+			this.connectionHandler.unregister ( pathObj , this );
 		} catch ( e ) {
 			logError ( "Error during unregistring path to socket in DesignObject.registerToSocket: " + e.toString ( ) );
 		}

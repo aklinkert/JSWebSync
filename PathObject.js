@@ -188,7 +188,7 @@ var PathObject = function ( messageOrParts ) {
 		}
 		
 		if ( typeof parts [ "range" ] == "object" )
-			this.path += "#" + range.start + "-" + range.count;
+			this.path += "#" + parts [ "range" ].start + "-" + parts [ "range" ].count;
 		
 		if ( typeof parts [ "values" ] == "object" && parts [ "values" ].size > 0 ) {
 			this.path += " " + parts [ "values" ].shift ( );

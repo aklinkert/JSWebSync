@@ -360,14 +360,17 @@ var SocketConnectionHandlerObject = function ( ) {
 	/**
 	 * @function
 	 * @public
-	 * @param {String} path Der Path, f&uuml;r das sich ein Objekt registriert.
+	 * @param {PathObj|String} pathObj Der Path, f&uuml;r das sich ein Objekt registriert.
 	 * @param {WebtouchDesignObject} obj Das Objekt, das sich f&uuml;r einen WebTouchDataPath registrieren m&ouml;chte.
 	 * @description F&uuml;gt einen Listener(DesignObjekt), das sich f&uuml;r WebTouchDataPaths registrieren
 	 *              m&ouml;chte, zur Liste registrierter Objekte hinzu. Diese Objekte werden benachrichtigt, wenn ein
 	 *              Update f&uuml;r den Wert, f&uuml;r den sie sich registriert haben, &uuml;ber die
 	 *              WebSocket-Verbindung emfangen wird.
 	 */
-	this.register = function ( path , obj ) {
+	this.register = function ( pathObj , obj ) {
+		
+		var path = ( pathObj instanceof PathObject ) ? pathObj.getShortPath ( ) : pathObj;
+		
 		if ( typeof this.registeredObjects [ path ] != "object" )
 			this.registeredObjects [ path ] = new Array ( );
 		if ( this.registeredObjects [ path ].indexOf ( obj ) != - 1 ) {
@@ -385,7 +388,7 @@ var SocketConnectionHandlerObject = function ( ) {
 				
 				this.send (
 					{
-					message: "regget " + path ,
+					message: "regget " + ( ( pathObj instanceof PathObject ) ? pathObj.getPath ( ) : pathObj ) ,
 					flags: new Array ( "authRequired" ) ,
 					nocache: false
 					} );
@@ -397,11 +400,14 @@ var SocketConnectionHandlerObject = function ( ) {
 	/**
 	 * @function
 	 * @public
-	 * @param {String} path Der Path, f&uuml;r das sich ein Objekt registriert.
+	 * @param {PathObject|String} pathObj Der Path, f&uuml;r das sich ein Objekt registriert.
 	 * @param {WebtouchDesignObject} obj Der Listener, der entfernt werden soll.
 	 * @description Entfernt ein Listener (WebtouchDesignObject) aus der Liste registrierter Objekte.
 	 */
-	this.unregister = function ( path , obj ) {
+	this.unregister = function ( pathObj , obj ) {
+		
+		var path = ( pathObj instanceof PathObject ) ? pathObj.getShortPath ( ) : pathObj;
+		
 		if ( typeof obj == "undefined" )
 			throw new ErrorObject ( "SocketConnectionHandlerObject", "unregister", "Invalid parameter." );
 		if ( typeof this.registeredObjects [ path ] == "undefined" )
@@ -420,7 +426,7 @@ var SocketConnectionHandlerObject = function ( ) {
 			
 			this.send (
 				{
-				message: "unreg " + path ,
+				message: "unreg " + ( ( pathObj instanceof PathObject ) ? pathObj.getPath ( ) : pathObj ) ,
 				flags: new Array ( "authRequired" ) ,
 				nocache: true
 				} );
