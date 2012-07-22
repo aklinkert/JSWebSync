@@ -195,6 +195,7 @@ var PathObject = function ( messageOrParts ) {
 			while ( parts [ "values" ].size > 0 )
 				this.path += "," + parts [ "values" ].shift ( );
 		}
+		
 		if ( typeof parts [ "values" ] == "object" && parts [ "values" ].length > 0 ) {
 			this.path += " " + this.mask ( parts [ "values" ].shift ( ) );
 			while ( parts [ "values" ].length > 0 )

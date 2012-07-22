@@ -1,12 +1,13 @@
 /**
  * @constructor
  * @public
+ * @param {Logger} logger Der zu nutzende Logger.
  * @class Stellt die WebSocket-Verbindung sowie Methoden zum Umgang damit bereit.
  * @description Die Klasse SocketConnectionHandlerObject stellt Methoden bereit, um Daten via WebSocketConnection zu
  *              senden, empfangen, verarbeiten und kontrolliert zu verteilen. Objekte k&ouml;nnen sich bei dem
  *              SocketConnectionHandlerObject registrieren, um Updates zu WebTouchDataPaths zu bekommen.
  */
-var SocketConnectionHandlerObject = function ( ) {
+var SocketConnectionHandlerObject = function ( logger ) {
 	/**
 	 * @private
 	 * @default String
@@ -112,6 +113,13 @@ var SocketConnectionHandlerObject = function ( ) {
 	 */
 	this.interval = null;
 	
+	/**
+	 * @private
+	 * @default Logger
+	 * @description Lokale Referenz auf Instanz des Loggers.
+	 */
+	this.logger = ( logger instanceof Logger ) ? logger : new Logger ( );
+	
 	// ################################################################
 	// ----------Funktionen: various-----------------------------------
 	// ################################################################
@@ -146,28 +154,23 @@ var SocketConnectionHandlerObject = function ( ) {
 		this.sockconn.connectionHandler = this;
 		
 		this.sockconn.onopen = function ( evt ) {
-			logToConsole ( this.getTimeStamp ( ) + ' CONNECTED: ' + this.connectionHandler.url );
+			this.connectionHandler.logger.log ( "io" , " CONNECTED: " + this.connectionHandler.url );
 			
 			this.connectionHandler.sendBuffer ( );
 		};
 		
 		this.sockconn.onclose = function ( evt ) {
-			logToConsole ( this.getTimeStamp ( ) + ' DISCONNECTED: ' + this.connectionHandler.url );
+			this.connectionHandler.logger.log ( "io" , " DISCONNECTED: " + this.connectionHandler.url );
 		};
 		
 		this.sockconn.onmessage = function ( evt ) {
-			logToConsole ( '<span style="color: blue;">' + this.getTimeStamp ( ) + ' GOT: ' + evt.data + '</span>' );
+			this.connectionHandler.logger.log ( "io" , "<span style=\"color: blue;\"> GOT: " + evt.data + "</span>" );
 			
 			this.connectionHandler.handleMessage ( evt.data );
 		};
 		
 		this.sockconn.onerror = function ( evt ) {
-			logToConsole ( '<span style="color: red;">' + this.getTimeStamp ( ) + ' ERROR:</span> ' + evt.data );
-		};
-		
-		this.sockconn.getTimeStamp = function ( ) {
-			var d = new Date ( );
-			return "<span style=\"color: green;\">" + d.getHours ( ) + ":" + d.getMinutes ( ) + ":" + ( ( d.getSeconds ( ) < 10 ) ? "0" + d.getSeconds ( ).toString ( ) : d.getSeconds ( ).toString ( ) ) + ":" + d.getMilliseconds ( ) + "</span>";
+			this.connectionHandler.logger.log ( "io" , "<span style=\"color: red;\"> ERROR:</span> " + evt.data );
 		};
 		
 		this.sockconn.getReadyState = function ( ) {
@@ -189,7 +192,6 @@ var SocketConnectionHandlerObject = function ( ) {
 	 * @description Schlie&szlig;t die WebSocket-Verbindung.
 	 */
 	this.close = function ( ) {
-		logToConsole ( "DISCONNECTING" );
 		this.sockconn.close ( );
 		
 		if ( this.sockconn.getReadyState ( ) != 3 )
@@ -256,7 +258,7 @@ var SocketConnectionHandlerObject = function ( ) {
 		}
 		
 		this.sockconn.send ( settings.message );
-		logToConsole ( this.sockconn.getTimeStamp ( ) + "SENT: " + settings.message );
+		this.logger.log ( "io" , "SENT: " + settings.message );
 	};
 	
 	/**
