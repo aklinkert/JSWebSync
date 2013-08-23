@@ -1,61 +1,61 @@
 /**
+ * The Logger is an object to log events and messages seperated with loglevels. By setting the loglevel you can choose, how much should be logged.
  * @constructor
  * @public
  * @class Logs events in a div and executes ections per message.
- * @description The Logger is an object to log events and messages seperated with loglevels. By setting the loglevel you
- *              can choose, how much should be logged.
  */
 var Logger = function ( ) {
 	
 	/**
+     * Stores the available log levels.
 	 * @private
 	 * @default Array
-	 * @description Stores the available loglevels.
 	 */
 	this.loglevels = new Array ( );
 	
 	/**
+     * Stores the current log level.
 	 * @private
 	 * @default null
-	 * @description Stores the current loglevel.
 	 */
 	this.currentLogLevel = null;
 	
 	/**
+     * The div where the log messages should be shown in.
 	 * @private
 	 * @default jQueryObject
-	 * @description The div where the log messages should be shown in.
 	 */
 	this.outputDiv = $ ( "<div>" );
 	
 	/**
+     * Stores the functions that should be executed on logging action.
 	 * @private
 	 * @default Array
-	 * @description Stores the functions that should be executed on logging action.
 	 */
 	this.onLogActions = new Array ( );
 	
 	/**
+     * Sets the output div to #div.
 	 * @public
 	 * @function
 	 * @param {jQueryObject} A jQuery Selector with a div.
-	 * @description Sets the output div to #div.
 	 */
 	this.setOutputDiv = function ( div ) {
 		this.outputDiv = $ ( div );
 	};
 	
 	/**
+     * Sets the current log level to #level.
 	 * @public
 	 * @function
 	 * @param {String} The current log level.
-	 * @description Sets the current loglevel to #level.
 	 */
 	this.setCurrentLogLevel = function ( level ) {
 		this.currentLogLevel = level;
 	};
 	
 	/**
+     * Logs a message.
 	 * @public
 	 * @function
 	 * @param {String} loglevel The level, at which the message should be logged.
@@ -78,10 +78,10 @@ var Logger = function ( ) {
 	};
 	
 	/**
+     * Returns a timestamp string.
 	 * @private
 	 * @function
 	 * @returns String
-	 * @description Returns a timestamp as string.
 	 */
 	this.getTimeStamp = function ( ) {
 		var d = new Date ( );
@@ -89,20 +89,19 @@ var Logger = function ( ) {
 	};
 	
 	/**
+     * Cleans the output div.
 	 * @public
 	 * @function
-	 * @description Cleans the output div.
 	 */
 	this.cleanLog = function ( ) {
 		this.outputDiv.empty ( );
 	};
 	
 	/**
+     * Adds a log level to the available log levels. It will be appended at the end, so the lowest level should be added at first.
 	 * @public
 	 * @function
 	 * @param {String} loglevel The level to be added.
-	 * @description Adds a loglevel to the available loglevels. It will be appended at the end, so the lowest level
-	 *              should be added at first.
 	 */
 	this.addLogLevel = function ( loglevel ) {
 		
@@ -111,10 +110,10 @@ var Logger = function ( ) {
 	};
 	
 	/**
+     * Adds a function to the array of functions, that are executed when a message is logged.
 	 * @public
 	 * @function
 	 * @param {Function} func The function to be added.
-	 * @description Adds a function to the array of functions, that are executed when a message is logged.
 	 */
 	this.addOnLogAction = function ( func ) {
 		this.onLogActions.push ( func );
