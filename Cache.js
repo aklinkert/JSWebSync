@@ -19,7 +19,7 @@ var Cache = function ( ) {
 	 * @param {Message} oMsg The message to check.
 	 * @returns {Boolean} True if the message is available in cache, false if not.
 	 */
-	this.isCachedValue = function ( oMsg ) {
+	this.contains = function ( oMsg ) {
         var type = oMsg.getType();
         var id = oMsg.getId();
 
@@ -43,7 +43,7 @@ var Cache = function ( ) {
 	 * @param {Message} oMsg The Message which cached value should be cached.
 	 * @returns Message
 	 */
-	this.getCachedValue = function ( oMsg ) {
+	this.get = function ( oMsg ) {
 		if (typeof(cachedValues[oMsg.getType()]) == "object" && typeof(cachedValues[oMsg.getType()][oMsg.getId()]) == "object") {
             return cachedValues[oMsg.getType()][oMsg.getId()];
         }
@@ -56,7 +56,7 @@ var Cache = function ( ) {
 	 * @public
 	 * @param {Message} oMsg The {@link Message} to be saved in cache.
 	 */
-	this.addCachedValue = function ( oMsg ) {
+	this.add = function ( oMsg ) {
         if (typeof(cachedValues[oMsg.getType()]) != "object") {
             cachedValues[oMsg.getType()] = new Array();
         }
@@ -70,7 +70,7 @@ var Cache = function ( ) {
 	 * @param {Message} oMsg The message to check.
 	 * @returns Boolean
 	 */
-	this.isCachedValueRequested = function ( oMsg ) {
+	this.isValueRequested = function ( oMsg ) {
 		return ( typeof ( cachedValues [ oMsg.getType() ] ) == "object" && cachedValues [oMsg.getType()][oMsg.getId()] == null );
 	};
 	
@@ -80,8 +80,8 @@ var Cache = function ( ) {
 	 * @public
 	 * @param {Message} oMsg The {@link Message} to set.
 	 */
-	this.setCachedValueIsRequested = function ( oMsg ) {
-		if ( this.isCachedValue ( oMsg ) )
+	this.setValueIsRequested = function ( oMsg ) {
+		if ( this.contains ( oMsg ) )
 			return;
 		
 		cachedValues [ oMsg.getType() ][ oMsg.getId() ] = null;
@@ -94,7 +94,7 @@ var Cache = function ( ) {
 	 * @public
 	 * @param Message oMsg The Message to remove.
 	 */
-	this.removeCachedValue = function ( oMsg ) {
+	this.remove = function ( oMsg ) {
 		delete cachedValues [ oMsg.getType() ][ oMsg.getId() ];
 	};
 };

@@ -18,98 +18,106 @@ var SocketConnectionHandler = function ( logger ) {
 	 * @private
 	 * @default WebSocket
 	 */
-	var sockconn = null;
+	var sockConn = null;
 	
 	/**
      * Stores all callbacks.
 	 * @private
 	 * @default Array
 	 */
-	var registeredCallbacks = new Array ( );
-	
+	var aRegisteredCallbacks = new Array ( );
+
+    /**
+     * Stores the index name of list listener.
+     * @private
+     * @type {string}
+     * @default string
+     */
+    var sListRegisteredIndex = "listListener";
+
 	/**
      * Buffer for unset messages.
 	 * @private
 	 * @default Array
 	 */
-	 var unsentMessages = new Array ( );
+	 var aUnsentMessages = new Array ( );
 	
 	/**
      * Buffer for incoming messages.
 	 * @private
 	 * @default Array
 	 */
-    var receivedMessageBuffer = new Array ( );
+    var aReceivedMessageBuffer = new Array ( );
 	
 	/**
      * How many messages shall be procedured.
 	 * @private
 	 * @default Integer
 	 */
-    var workFromStackReceivedMessages = 10;
+    var iWorkFromStackReceivedMessages = 10;
 	
 	/**
      * Instance of {@link Cache} to cache messages.
 	 * @private
 	 * @default Cache
 	 */
-    var cache = new Cache ( );
+    var oCache = new Cache ( );
 	
 	/**
      * Stores transaction callbacks.
 	 * @private
 	 * @default Array
 	 */
-    var transactions = new Array ( );
+    var aTransactions = new Array ( );
 	
 	/**
      * The actual transaction ID.
 	 * @private
 	 * @default Integer
 	 */
-    var transactionID = 0;
+    var iTransactionID = 0;
 	
 	/**
      * Message counter.
 	 * @private
 	 * @default Integer
 	 */
-    var counter = 0;
+    var iCounter = 0;
 	
 	/**
-     * Store flag.
+     * Flag store.
 	 * @private
 	 * @default Array
 	 */
-    var flags = new Array ( );
+    var aFlags = new Array ( );
 	
 	/**
      * The flag buffer stores messages that are unsent cause of inactive flag state.
 	 * @private
 	 * @default Array
 	 */
-    var flagBuffer = new Array ( );
+    var aFlagBuffer = new Array ( );
 	
 	/**
      * Stores the flag listener that wait for flag state change.
 	 * @private
 	 * @default Array
 	 */
-    var flagListener = new Array ( );
+    var aFlagListener = new Array ( );
 	
 	/**
      * Stores the interval to complete the messages.
 	 * @private
 	 * @default Null
 	 */
-    var interval = null;
+    var iInterval = null;
 	
 	/**
      * Logger instance store.
 	 * @private
 	 * @default Logger
 	 */
-    var logger = ( logger instanceof Logger ) ? logger : new Logger ( );
+    var oLogger = ( logger instanceof Logger ) ? logger : new Logger ( );
 	
 	/**
      * returns the new message counter.
@@ -117,7 +125,7 @@ var SocketConnectionHandler = function ( logger ) {
 	 * @returns {Integer} Global counter f.e. jQuery.ajax()
 	 */
 	this.getCounter = function ( ) {
-		return ++ counter;
+		return ++ iCounter;
 	};
 	
 	/**
@@ -128,44 +136,44 @@ var SocketConnectionHandler = function ( logger ) {
 	 */
 	this.connect = function ( urlparam ) {
 		url = urlparam || url;
-		sockconn = null;
+		sockConn = null;
 		
-		sockconn = new WebSocket ( url );
+		sockConn = new WebSocket ( url );
 		
-		if ( ( typeof sockconn == "undefined" ) || ( sockconn == null ) )
+		if ( ( typeof sockConn == "undefined" ) || ( sockConn == null ) )
 			throw new DetailedError ( "SocketConnectionHandler", "connect", "Socket Connection didn't establish" );
 		
-		sockconn.connectionHandler = this;
+		sockConn.connectionHandler = this;
 		
-		sockconn.onopen = function ( evt ) {
-			logger.log ( "io" , " CONNECTED: " + this.connectionHandler.url );
+		sockConn.onopen = function ( evt ) {
+			oLogger.log ( "io" , " CONNECTED: " + this.connectionHandler.url );
 			
 			this.connectionHandler.sendBuffer ( );
 		};
 		
-		sockconn.onclose = function ( evt ) {
-			logger.log ( "io" , " DISCONNECTED: " + this.connectionHandler.url );
+		sockConn.onclose = function ( evt ) {
+			oLogger.log ( "io" , " DISCONNECTED: " + this.connectionHandler.url );
 		};
 		
-		sockconn.onmessage = function ( evt ) {
-			logger.log ( "io" , "GOT: " + evt.data );
+		sockConn.onmessage = function ( evt ) {
+			oLogger.log ( "io" , "GOT: " + evt.data );
 			
 			this.connectionHandler.handleMessage ( evt.data );
 		};
 		
-		sockconn.onerror = function ( evt ) {
-			logger.log ( "io" , "ERROR:" + evt.data );
+		sockConn.onerror = function ( evt ) {
+			oLogger.log ( "io" , "ERROR:" + evt.data );
 		};
 		
-		sockconn.getReadyState = function ( ) {
+		sockConn.getReadyState = function ( ) {
 			return this.readyState;
 		};
 		
-		if ( interval != null )
-			window.clearTimeout ( interval );
+		if ( iInterval != null )
+			window.clearTimeout ( iInterval );
 		
 		var thatConnectionHandler = this;
-		interval = window.setInterval ( function ( ) {
+		iInterval = window.setInterval ( function ( ) {
 			thatConnectionHandler.handleMessageFromBuffer ( );
 		} , 50 );
 	};
@@ -176,14 +184,14 @@ var SocketConnectionHandler = function ( logger ) {
 	 * @description Closes the WebSocket connection.
 	 */
 	this.close = function ( ) {
-		sockconn.close ( );
+		sockConn.close ( );
 		
-		if ( sockconn.getReadyState ( ) != 3 )
+		if ( sockConn.getReadyState ( ) != 3 )
 			throw new DetailedError ( "SocketConnectionHandlerObject", "close", "Closing the WebSocket-Connection unsuccessful." );
 		
-		if ( interval != null ) {
-			window.clearTimeout ( interval );
-			interval = null;
+		if ( iInterval != null ) {
+			window.clearTimeout ( iInterval );
+			iInterval = null;
 		}
 	};
 
@@ -194,7 +202,7 @@ var SocketConnectionHandler = function ( logger ) {
 	 * @param {Message} message A Message.
 	 */
 	this.send = function ( message ) {
-		if ( typeof(sockconn) == "undefined" || sockconn == null ) {
+		if ( typeof(sockConn) == "undefined" || sockConn == null ) {
 			this.connect ( url );
         }
 
@@ -207,23 +215,23 @@ var SocketConnectionHandler = function ( logger ) {
 					throw new DetailedError ( "SocketConnectionHandlerObject", "send", "Flag " + flag + " is not in the Flags-Array." );
                 }
 				if ( ! flags [ flag ].active ) {
-					flagBuffer [ flag ].push ( message );
+					aFlagBuffer [ flag ].push ( message );
 					return;
 				}
 			}
 		}
 
 		if ( !message.getNocache() &&  message.getAction() == "get" && message.getId() != null) {
-            if ( cache.isCachedValue ( message ) || cache.isCachedValueRequested ( message ) ) {
+            if ( oCache.contains ( message ) || oCache.isValueRequested ( message ) ) {
                 return;
             }
 
-            cache.setCachedValueIsRequested ( message );
+            oCache.setValueIsRequested ( message );
         }
 		
-		var state = sockconn.getReadyState ( );
-		if ( ! sockconn || state != 1 ) {
-			unsentMessages.push ( message );
+		var state = sockConn.getReadyState ( );
+		if ( ! sockConn || state != 1 ) {
+			aUnsentMessages.push ( message );
 			
 			if ( state == 3 ) {
 				this.connect ( url );
@@ -231,8 +239,8 @@ var SocketConnectionHandler = function ( logger ) {
 			return;
 		}
 		
-		sockconn.send ( message.buildJSON() );
-		logger.log ( "io" , "SENT: " + message.buildJSON() );
+		sockConn.send ( message.buildJSON() );
+		oLogger.log ( "io" , "SENT: " + message.buildJSON() );
 	};
 	
 	/**
@@ -252,9 +260,9 @@ var SocketConnectionHandler = function ( logger ) {
 	 * @private
 	 */
 	this.sendBuffer = function ( ) {
-		while ( unsentMessages.length > 0 ) {
-			if ( sockconn.getReadyState ( ) == 1 )
-				this.send ( unsentMessages.shift ( ) );
+		while ( aUnsentMessages.length > 0 ) {
+			if ( sockConn.getReadyState ( ) == 1 )
+				this.send ( aUnsentMessages.shift ( ) );
 			else
 				return;
 		}
@@ -266,11 +274,11 @@ var SocketConnectionHandler = function ( logger ) {
 	 * @function
 	 * @param {Object} settings The settings Object containing the message too.
 	 * @param {Object} obj The callback to call to call back for callback.
-	 * @returns The transactionID of the message.
+	 * @returns The iTransactionID of the message.
 	 */
 	this.sendTransaction = function ( settings , obj ) {
 		var tid = this.getNewTransID ( );
-		transactions [ "trans" + tid + "" ] = obj;
+		aTransactions [ "trans" + tid + "" ] = obj;
 		settings.message = "tid " + tid + " " + settings.message;
 		this.send ( settings );
 		return tid;
@@ -283,7 +291,7 @@ var SocketConnectionHandler = function ( logger ) {
 	 * @returns The new transaction ID.
 	 */
 	this.getNewTransID = function ( ) {
-		return transactionID ++ ;
+		return iTransactionID ++ ;
 	};
 
 	/**
@@ -293,7 +301,7 @@ var SocketConnectionHandler = function ( logger ) {
 	 * @param {String} msg The recieved Message.
 	 */
 	this.handleMessage = function ( msg ) {
-		receivedMessageBuffer.push ( msg );
+		aReceivedMessageBuffer.push ( msg );
 	};
 	
 	/**
@@ -303,19 +311,19 @@ var SocketConnectionHandler = function ( logger ) {
 	 */
 	this.handleMessageFromBuffer = function ( ) {
 		
-		for ( var counter = 0 ; counter < workFromStackReceivedMessages ; counter ++ ) {
-			if ( receivedMessageBuffer.length == 0 ) {
+		for ( var counter = 0 ; counter < iWorkFromStackReceivedMessages ; counter ++ ) {
+			if ( aReceivedMessageBuffer.length == 0 ) {
 				return;
             }
 			
-			var obj = receivedMessageBuffer.shift ( );
+			var obj = aReceivedMessageBuffer.shift ( );
 			
 			if ( obj.isTransaction ( ) ) {
 				var index = "trans" + obj.getTransID ( ) + "";
-				transactions [ index ].update ( obj );
-				delete ( transactions [ index ] );
+				aTransactions [ index ].update ( obj );
+				delete ( aTransactions [ index ] );
 			} else {
-				cache.addCachedValue ( obj );
+				oCache.add ( obj );
 				this.dispatch ( obj );
 			}
 		}
@@ -323,29 +331,57 @@ var SocketConnectionHandler = function ( logger ) {
 	};
 
 	/**
+     * Registers a CallbackHandler for message results.
 	 * @function
 	 * @public
-	 * @param {PathObj|String} pathObj
-	 * @param {WebtouchDesignObject}
+	 * @param {Message} oMsg The Message to register for.
+     * @param {CallbackHandler} oCbHandler The {@link CallbackHandler} to handle the result.
 	 */
-	this.register = function ( pathObj , obj ) {
-		
-		var path = ( pathObj instanceof PathObject ) ? pathObj.getShortPath ( ) : pathObj;
-		
-		if ( typeof registeredCallbacks [ path ] != "object" )
-			registeredCallbacks [ path ] = new Array ( );
-		if ( registeredCallbacks [ path ].indexOf ( obj ) != - 1 ) {
+	this.register = function ( oMsg, oCbHandler ) {
+
+        var sType = oMsg.getType();
+        var sId = oMsg.getId();
+
+        if (null == sId) {
+            sId = sListRegisteredIndex;
+        }
+
+        if (typeof(aRegisteredCallbacks[sType]) != "object") {
+            aRegisteredCallbacks[sType] = new Array();
+        }
+        if (typeof(aRegisteredCallbacks[sType][sId]) != "object") {
+            aRegisteredCallbacks[sType][sId] = new Array();
+        }
+        aRegisteredCallbacks[sType][sId].push(oCbHandler);
+
+        if (!oMsg.getNocache()) {
+            if (oCache.contains(oMsg)) {
+                oCbHandler.callback(sType, oCache.get(oMsg));
+                return;
+            } else if (oCache.isValueRequested(oMsg)) {
+                return;
+            }
+
+            oCache.setValueIsRequested(oMsg);
+        }
+
+        this.send(oMsg);
+
+        /*
+		if ( typeof aRegisteredCallbacks [ path ] != "object" )
+			aRegisteredCallbacks [ path ] = new Array ( );
+		if ( aRegisteredCallbacks [ path ].indexOf ( obj ) != - 1 ) {
 			
-			obj.update ( cache.getCachedValue ( path ) );
+			obj.update ( oCache.get ( path ) );
 			
 		} else {
 			if ( typeof obj.socketConnectionAnswerCounter == "undefined" )
 				obj.socketConnectionAnswerCounter = new Array ( );
 			obj.socketConnectionAnswerCounter [ path ] = 0;
 			
-			registeredCallbacks [ path ].push ( obj );
+			aRegisteredCallbacks [ path ].push ( obj );
 			
-			if ( registeredCallbacks [ path ].length == 1 && ! cache.isCachedValue ( path ) )
+			if ( aRegisteredCallbacks [ path ].length == 1 && ! oCache.contains ( path ) )
 				this.send ({
 					message: "regget " + ( ( pathObj instanceof PathObject ) ? pathObj.getPath ( ) : pathObj ) ,
 					flags: new Array ( "authRequired" ) ,
@@ -354,6 +390,7 @@ var SocketConnectionHandler = function ( logger ) {
 			else
 				this.dispatchFromCache ( path );
 		}
+		*/
 	};
 	
 	/**
@@ -369,19 +406,19 @@ var SocketConnectionHandler = function ( logger ) {
 		
 		if ( typeof obj == "undefined" )
 			throw new DetailedError ( "SocketConnectionHandlerObject", "unregister", "Invalid parameter." );
-		if ( typeof registeredCallbacks [ path ] == "undefined" )
+		if ( typeof aRegisteredCallbacks [ path ] == "undefined" )
 			throw new DetailedError ( "SocketConnectionHandlerObject", "unregister", "Path not found." );
 		
-		var index = registeredCallbacks [ path ].indexOf ( obj );
+		var index = aRegisteredCallbacks [ path ].indexOf ( obj );
 		if ( index == - 1 )
 			throw new DetailedError ( "SocketConnectionHandlerObject", "unregister", "Object registering for path " + path + "  not in Array." );
 		
-		registeredCallbacks [ path ].splice ( index , 1 );
+		aRegisteredCallbacks [ path ].splice ( index , 1 );
 		
 		delete obj.socketConnectionAnswerCounter [ path ];
 		
-		if ( registeredCallbacks [ path ].length == 0 ) {
-			delete registeredCallbacks [ path ];
+		if ( aRegisteredCallbacks [ path ].length == 0 ) {
+			delete aRegisteredCallbacks [ path ];
 			
 			this.send (
 				{
@@ -390,7 +427,7 @@ var SocketConnectionHandler = function ( logger ) {
 				nocache: true
 				} );
 			
-			cache.removeCachedValue ( path );
+			oCache.remove ( path );
 		}
 	};
 
@@ -401,7 +438,7 @@ var SocketConnectionHandler = function ( logger ) {
 	 * @description Holt die zu dem Pfad geh&ouml;renden Werte vom Cache und verteilt diese.
 	 */
 	this.dispatchFromCache = function ( pathObj ) {
-		var cachedValue = cache.getCachedValue ( pathObj );
+		var cachedValue = oCache.get ( pathObj );
 		
 		if ( cachedValue instanceof PathObject )
 			this.dispatch ( cachedValue );
@@ -419,10 +456,10 @@ var SocketConnectionHandler = function ( logger ) {
 	this.dispatch = function ( pathObj ) {
 		var path = pathObj.getShortPath ( );
 		
-		for ( index in registeredCallbacks [ path ] ) {
-			if ( ( registeredCallbacks [ path ] [ index ].socketConnectionAnswerCounter [ path ] < cache.getCachedValueSize ( pathObj ) ) || pathObj.getCommand ( ) != "def" ) {
-				registeredCallbacks [ path ] [ index ].socketConnectionAnswerCounter [ path ] ++ ;
-				registeredCallbacks [ path ] [ index ].update ( pathObj );
+		for ( index in aRegisteredCallbacks [ path ] ) {
+			if ( ( aRegisteredCallbacks [ path ] [ index ].socketConnectionAnswerCounter [ path ] < oCache.getCachedValueSize ( pathObj ) ) || pathObj.getCommand ( ) != "def" ) {
+				aRegisteredCallbacks [ path ] [ index ].socketConnectionAnswerCounter [ path ] ++ ;
+				aRegisteredCallbacks [ path ] [ index ].update ( pathObj );
 			}
 		}
 		
@@ -443,9 +480,9 @@ var SocketConnectionHandler = function ( logger ) {
 		var name = settings.name;
 		delete settings.name;
 		
-		flags [ name ] = settings;
-		flagBuffer [ name ] = new Array ( );
-		flagListener [ name ] = new Array ( );
+		aFlags [ name ] = settings;
+		aFlagBuffer [ name ] = new Array ( );
+		aFlagListener [ name ] = new Array ( );
 	};
 
     /*
@@ -462,7 +499,7 @@ var SocketConnectionHandler = function ( logger ) {
 	 * @param {Object} settings
 	 */
 	this.addFlagListener = function ( settings ) {
-		if ( typeof flags [ settings.flagName ] == "undefined" || settings.flagname == "" || settings.flagName == " " )
+		if ( typeof aFlags [ settings.flagName ] == "undefined" || settings.flagname == "" || settings.flagName == " " )
 			throw new DetailedError ( "SocketConnectionHandlerObject", "addFlagListener", "Error: No FlagName set in settings Object or Flag not available." );
 		else if ( typeof settings.onActive != "function" )
 			throw new DetailedError ( "SocketConnectionHandlerObject", "addFlagListener", "Error: no EventHandler set of typeof parameter not a function." );
@@ -470,17 +507,17 @@ var SocketConnectionHandler = function ( logger ) {
 		if ( typeof settings.once == "undefined" )
 			settings.once = true;
 		
-		if ( flags [ settings.flagName ].active ) {
+		if ( aFlags [ settings.flagName ].active ) {
 			settings.onActive ( );
 			
 			if ( settings.once )
 				return;
 		}
 		
-		if ( typeof flagListener [ settings.flagName ] != "object" )
-			flagListener [ settings.flagName ] = new Array ( );
+		if ( typeof aFlagListener [ settings.flagName ] != "object" )
+			aFlagListener [ settings.flagName ] = new Array ( );
 		
-		flagListener [ settings.flagName ].push ( settings );
+		aFlagListener [ settings.flagName ].push ( settings );
 		
 	};
 	
@@ -491,8 +528,8 @@ var SocketConnectionHandler = function ( logger ) {
 	 * @param {String} name The flag name.
 	 */
 	this.removeFlag = function ( name ) {
-		delete flags [ name ];
-		delete flagBuffer [ name ];
+		delete aFlags [ name ];
+		delete aFlagBuffer [ name ];
 	};
 	
 	/**
@@ -503,17 +540,17 @@ var SocketConnectionHandler = function ( logger ) {
 	 * @param {Boolean} status The status to set.
 	 */
 	this.setFlag = function ( name , status ) {
-		flags [ name ].active = status;
+		aFlags [ name ].active = status;
 		
 		if ( status ) {
 			// Send messages in Flagbuffer
-			while ( flagBuffer [ name ].length > 0 )
-				this.send ( flagBuffer [ name ].shift ( ) );
+			while ( aFlagBuffer [ name ].length > 0 )
+				this.send ( aFlagBuffer [ name ].shift ( ) );
 			
 			// Call CallbackFunctions in FlagListener Array
 			var settings , endArr = new Array ( );
-			while ( flagListener [ name ].length > 0 ) {
-				settings = flagListener [ name ].shift ( );
+			while ( aFlagListener [ name ].length > 0 ) {
+				settings = aFlagListener [ name ].shift ( );
 				
 				settings.onActive ( );
 				
@@ -521,7 +558,7 @@ var SocketConnectionHandler = function ( logger ) {
 					endArr.push ( settings );
 				
 			}
-			flagListener [ name ] = endArr;
+			aFlagListener [ name ] = endArr;
 		}
 		
 	};
