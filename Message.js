@@ -1,4 +1,4 @@
-var Message = function (oMessage) {
+var Message = function () {
     /*
      {
       "msgid": 1,                                             // Transaction ID
@@ -11,28 +11,27 @@ var Message = function (oMessage) {
       "flags": []                                             // list of used flags
      }
      */
-    var oMessage = oMessage || {};
-    var oFields = {
-        messageId: "msgid",
-        id: "id",
-        type: "type",
-        action: "action",
-        subscription: "sub",
-        nocache: "nocache",
-        relations: "rels",
-        flags: "flags",
-        data: "data"
-    };
-
-    var sMessageId = null;
-    var sId = null;
-    var sType = null;
-    var sAction = null;
-    var aRelations = new Array();
-    var aFlags = new Array();
-    var bSubscription = true;
-    var bNocache = false;
-    var oData = null;
+    var oMessage = {},
+        oFields = {
+            messageId: "msgid",
+            id: "id",
+            type: "type",
+            action: "action",
+            subscription: "sub",
+            nocache: "nocache",
+            relations: "rels",
+            flags: "flags",
+            data: "data"
+        },
+        sMessageId = null,
+        sId = null,
+        sType = null,
+        sAction = null,
+        aRelations = [],
+        aFlags = [],
+        bSubscription = true,
+        bNocache = false,
+        oData = {};
 
     this.setMessageId = function (messageId) {
         sMessageId = messageId;
@@ -42,12 +41,20 @@ var Message = function (oMessage) {
         return sMessageId;
     };
 
+    this.hasMessageId = function () {
+        return sMessageId != null;
+    };
+
     this.setId = function (id) {
         sId = id;
     };
 
     this.getId = function () {
         return sId;
+    };
+
+    this.hasId = function () {
+        return sId != null;
     };
 
     this.setType = function (type) {
@@ -114,19 +121,17 @@ var Message = function (oMessage) {
         aFlags.splice(aFlags.indexOf(flag), 1);
     };
 
-    this.readFromJSON = function (json) {
-        oMessage = jQuery.parseJSON(json);
-
+    this.readFromObject = function (oMessage) {
         sMessageId = oMessage[oFields.messageId];
         sId = oMessage[oFields.id];
         sType = oMessage[oFields.type];
         sAction = oMessage[oFields.action];
         bSubscription = oMessage[oFields.subscription];
         bNocache = oMessage[oFields.nocache];
-        aRelations = oMessage[oFields.relations];
-        aFlags = oMessage[oFields.flags];
-        oData = oMessage[oFields.data];
-    };
+        aRelations = oMessage[oFields.relations] || [];
+        aFlags = oMessage[oFields.flags] || [];
+        oData = oMessage[oFields.data] || {};
+    }
 
     this.buildJSON = function () {
         oMessage = {};
@@ -142,6 +147,14 @@ var Message = function (oMessage) {
 
         return JSON.stringify(oMessage);
     };
+};
 
+Message.createInstance = function (json) {
+    var oMessage = new Message();
+    oMessage.readFromObject(json);
+    return oMessage;
+};
 
+Message.createInstanceFromJSON = function (sJson) {
+    return Message.createInstance(jQuery.parseJSON(sJson));
 };
