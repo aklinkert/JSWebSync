@@ -131,7 +131,7 @@ var Message = function () {
         aRelations = oMessage[oFields.relations] || [];
         aFlags = oMessage[oFields.flags] || [];
         oData = oMessage[oFields.data] || {};
-    }
+    };
 
     this.buildJSON = function () {
         oMessage = {};

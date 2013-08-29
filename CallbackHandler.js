@@ -14,7 +14,11 @@ var CallbackHandler = function () {
             for (sIndex in aGroupEvents[sEvent]) {
                 this.on(aGroupEvents[sEvent][sIndex], fCallback);
             }
-        } else if (typeof (aCallbacks[sEvent]) == "object") {
+        } else {
+            if (typeof (aCallbacks[sEvent]) != "object") {
+                aCallbacks[sEvent] = [];
+            }
+
             aCallbacks[sEvent].push(fCallback);
         }
 
@@ -34,8 +38,8 @@ var CallbackHandler = function () {
                 this.callback(oMsg, aGroupEvents[sEvent][sIndex]);
             }
         } else if (typeof (aCallbacks[sEvent]) == "object") {
-            for (sIndex in aGroupEvents[sEvent]) {
-                aGroupEvents[sEvent][sIndex](oMsg);
+            for (sIndex in aCallbacks[sEvent]) {
+                aCallbacks[sEvent][sIndex](oMsg.getData());
             }
         }
 

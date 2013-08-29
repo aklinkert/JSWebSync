@@ -42,7 +42,7 @@ var Logger = function () {
     this.setOutputDiv = function (div) {
         this.outputDiv = $(div);
     };
-    
+
     /**
      * Sets the current log level to #level.
      * @public
@@ -86,7 +86,7 @@ var Logger = function () {
      */
     this.getTimeStamp = function () {
         var d = new Date();
-        return "<span style=\"color: grey;\">" + d.getHours() + ":" + d.getMinutes() + ":" + ( ( d.getSeconds() < 10 ) ? "0" + d.getSeconds().toString() : d.getSeconds().toString() ) + ":" + d.getMilliseconds() + "</span>";
+        return "<span style=\"color: grey;\">" + d.getHours() + ":" + d.getMinutes() + ":" + ((d.getSeconds() < 10) ? "0" + d.getSeconds().toString() : d.getSeconds().toString()) + ":" + d.getMilliseconds() + "</span>";
     };
 
     /**
