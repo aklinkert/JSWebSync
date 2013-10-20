@@ -1,0 +1,12 @@
+{
+	"name": "JSWebSync",
+	"description": "Bunch of Classes to handle and cache WebSocket Messages",
+	"version": "0.1.0",
+	"devDependencies": {
+		"coffee-script": "1.6.x"
+	},
+	"dependencies": {
+		"socket.io": "0.9.x"
+	},
+	"main": "Module.js"
+}

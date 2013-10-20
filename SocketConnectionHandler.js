@@ -1,527 +1,575 @@
-/**
- * A class to provide message halding, caching and a registration system for updates.
- * @constructor
- * @public
- * @param {Logger} The Logger instance to use or null if none shall be used.
- * @class Provides methods to register, unregister, cache and handle messages.
- */
-var SocketConnectionHandler = function (url, logger) {
-    'use strict';
+if (typeof define !== 'function') {
+    var define = require('amdefine')(module);
+}
+
+define('SocketConnectionHandler', ['Cache', 'Message', 'Logger', 'socketio'], function (Cache, Message, Logger, io) {
 
     /**
-     * Stores the url to connect to.
-     * @private
-     * @default String
-     */
-    var sUrl = url,
-
-    /**
-     * The connection instance.
-     * @private
-     * @default WebSocket
-     */
-        oSockConn = null,
-
-    /**
-     * Stores all callbacks.
-     * @private
-     * @default Array
-     */
-        aRegisteredCallbacks = [],
-
-    /**
-     * Stores the index name of list listener.
-     * @private
-     * @type {string}
-     * @default string
-     */
-        sListRegisteredIndex = "listListener",
-
-    /**
-     * Buffer for unset messages.
-     * @private
-     * @default Array
-     */
-        aUnsentMessages = [],
-
-    /**
-     * Buffer for incoming messages.
-     * @private
-     * @default Array
-     */
-        aReceivedMessageBuffer = [],
-
-    /**
-     * How many messages shall be procedured.
-     * @private
-     * @default Integer
-     */
-        iWorkFromStackReceivedMessages = 10,
-
-    /**
-     * Instance of {@link Cache} to cache messages.
-     * @private
-     * @default Cache
-     */
-        oCache = new Cache(),
-
-    /**
-     * Stores transaction callbacks.
-     * @private
-     * @default Array
-     */
-        aMessages = [],
-
-    /**
-     * The actual message ID.
-     * @private
-     * @default Integer
-     */
-        iMessageId = 0,
-
-    /**
-     * Flag store.
-     * @private
-     * @default Array
-     */
-        aFlags = [],
-
-    /**
-     * The flag buffer stores messages that are unsent cause of inactive flag state.
-     * @private
-     * @default Array
-     */
-        aFlagBuffer = [],
-
-    /**
-     * Stores the flag listener that wait for flag state change.
-     * @private
-     * @default Array
-     */
-        aFlagListener = [],
-
-    /**
-     * Stores the interval to complete the messages.
-     * @private
-     * @default Null
-     */
-        iInterval = null,
-
-    /**
-     * Logger instance store.
-     * @private
-     * @default Logger
-     */
-        oLogger = (logger instanceof Logger) ? logger : new Logger();
-
-    /**
-     * Establishes a WebSocket connection to the given url.
-     * @function
+     * A class to provide message halding, caching and a registration system for updates.
+     * @constructor
      * @public
-     * @param {String} urlparam The url the WebSocket should be established to.
+     * @param {String} urls The url to connect to.
+     * @param {Logger} logger The Logger instance to use or null if none shall be used.
+     * @class SocketConnectionHandler Provides methods to register, unregister, cache and handle messages.
      */
-    this.connect = function (urlparam) {
-        sUrl = urlparam || sUrl;
+    return function (url, logger) {
+        'use strict';
 
-        oSockConn = new WebSocket(sUrl);
+        /**
+         * Stores a local reference to this object for unse in callbacks and other ananonymous functions.
+         * @type {SocketConnectionHandler}
+         */
+        var oThat = this,
 
-        if (oSockConn == null) {
-            throw new DetailedError("SocketConnectionHandler", "connect", "Socket Connection didn't establish");
-        }
+            /**
+             * Stores the url to connect to.
+             * @private
+             * @default String
+             */
+                sUrl = url,
 
-        oSockConn.connectionHandler = this;
+            /**
+             * Socket.IO Connection instance.
+             * @private
+             * @default WebSocket
+             */
+                oSockConn = null,
 
-        oSockConn.onopen = function () {
-            oLogger.log("io", " CONNECTED: " + sUrl);
+            /**
+             * Stores the state if socket.io is connected or not.
+             * @private
+             * @default Boolean
+             */
+                bSockConnConnected = false,
 
-            this.connectionHandler.sendBuffer();
-        };
+            /**
+             * Stores all callbacks.
+             * @private
+             * @default Array
+             */
+                aRegisteredCallbacks = [],
 
-        oSockConn.onclose = function (event) {
-            oLogger.log("io", " DISCONNECTED: " + event);
-        };
+            /**
+             * Stores the index name of list listener.
+             * @private
+             * @type {string}
+             * @default string
+             */
+                sListRegisteredIndex = "listListener",
 
-        oSockConn.onmessage = function (event) {
-            oLogger.log("io", "GOT: " + event.data);
+            /**
+             * Buffer for unset messages.
+             * @private
+             * @default Array
+             */
+                aUnsentMessages = [],
 
-            this.connectionHandler.handleMessage(event.data);
-        };
+            /**
+             * Buffer for incoming messages.
+             * @private
+             * @default Array
+             */
+                aReceivedMessageBuffer = [],
 
-        oSockConn.onerror = function (event) {
-            oLogger.log("io", "ERROR:" + event.data);
-        };
+            /**
+             * How many messages shall be procedured.
+             * @private
+             * @default Integer
+             */
+                iWorkFromStackReceivedMessages = 10,
 
-        oSockConn.getReadyState = function () {
-            return this.readyState;
-        };
+            /**
+             * Instance of {@link Cache} to cache messages.
+             * @private
+             * @default Cache
+             */
+                oCache = new Cache(),
 
-        if (iInterval != null) {
-            window.clearTimeout(iInterval);
-        }
+            /**
+             * Stores transaction callbacks.
+             * @private
+             * @default Array
+             */
+                aMessages = [],
 
-        var thatConnectionHandler = this;
-        iInterval = window.setInterval(function () {
-            thatConnectionHandler.handleMessageFromBuffer();
-        }, 50);
-    };
+            /**
+             * The actual message ID.
+             * @private
+             * @default Integer
+             */
+                iMessageId = 0,
 
-    /**
-     * @function
-     * @public
-     * @description Closes the WebSocket connection.
-     */
-    this.close = function () {
-        oSockConn.close();
+            /**
+             * Flag store.
+             * @private
+             * @default Array
+             */
+                aFlags = [],
 
-        if (oSockConn.getReadyState() != 3) {
-            throw new DetailedError("SocketConnectionHandlerObject", "close", "Closing the WebSocket-Connection unsuccessful.");
-        }
-        if (iInterval != null) {
-            window.clearTimeout(iInterval);
-            iInterval = null;
-        }
-    };
+            /**
+             * The flag buffer stores messages that are unsent cause of inactive flag state.
+             * @private
+             * @default Array
+             */
+                aFlagBuffer = [],
 
-    /**
-     * Sends a message.
-     * @function
-     * @private
-     * @param {Message} oMsg A Message.
-     * @return int The messageId.
-     */
-    this.send = function (oMsg) {
-        if (oSockConn == null) {
-            this.connect(sUrl);
-        }
+            /**
+             * Stores the flag listener that wait for flag state change.
+             * @private
+             * @default Array
+             */
+                aFlagListener = [],
 
-        var iMsgId = this.getNewMessageID(),
-            aFlags = oMsg.getFlags(),
-            sKey = null,
-            aFlag = null;
-        oMsg.setMessageId(iMsgId);
+            /**
+             * Stores the interval to complete the messages.
+             * @private
+             * @default Null
+             */
+                oInterval = null,
 
-        if (aFlags.length > 0) {
-            for (sKey in aFlags) {
-                aFlag = aFlags[sKey];
+            /**
+             * Logger instance store.
+             * @private
+             * @default Logger
+             */
+                oLogger = (logger instanceof Logger) ? logger : new Logger();
 
-                if (typeof aFlags[aFlag] != "object") {
-                    throw new DetailedError("SocketConnectionHandlerObject", "send", "Flag " + aFlag + " is not in the Flags-Array.");
-                }
-                if (!aFlags[aFlag].active) {
-                    aFlagBuffer[aFlag].push(oMsg);
-                    return iMsgId;
-                }
+        /**
+         * Establishes a WebSocket connection to the given url.
+         * @function
+         * @public
+         * @param {String} urlparam The url the WebSocket should be established to.
+         */
+        this.connect = function (urlparam) {
+            sUrl = urlparam || sUrl;
+
+
+            /* use of oldschool direct WebSocket access.
+             oSockConn = new WebSocket(sUrl);
+
+             if (oSockConn == null) {
+             throw new DetailedError("SocketConnectionHandler", "connect", "Socket Connection didn't establish");
+             }
+
+             oSockConn.connectionHandler = this;
+
+             oSockConn.onopen = function () {
+             oLogger.log("io", " CONNECTED: " + sUrl);
+
+             this.connectionHandler.sendBuffer();
+             };
+
+             oSockConn.onclose = function (event) {
+             oLogger.log("io", " DISCONNECTED: " + event);
+             };
+
+             oSockConn.onmessage = function (event) {
+             oLogger.log("io", "GOT: " + event.data);
+
+             this.connectionHandler.handleMessage(event.data);
+             };
+
+             oSockConn.onerror = function (event) {
+             oLogger.log("io", "ERROR:" + event.data);
+             };
+
+             oSockConn.getReadyState = function () {
+             return this.readyState;
+             };
+
+             */
+
+            if (oSockConn == null) {
+                oSockConn = io.connect(sUrl);
+                oSockConn.on('connect', function () {
+                    oLogger.log("io", " CONNECTED: " + sUrl);
+
+                    oSockConn.on('sm-data', function (data) {
+                        oLogger.log("io", "GOT: " + data);
+
+                        oThat.handleMessage(data);
+                    });
+                    oSockConn.on('disconnect', function () {
+                        oLogger.log("io", " DISCONNECTED: " + event);
+                        bSockConnConnected = false;
+
+                        if (oInterval != null) {
+                            window.clearTimeout(oInterval);
+                            oInterval = null;
+                        }
+                    });
+                    oSockConn.on('error', function () {
+                        oLogger.log("io", "ERROR:" + event.data);
+                    });
+
+                    bSockConnConnected = true;
+                    oThat.sendBuffer();
+                });
+            } else {
+                oSockConn.socket.connect();
             }
-        }
 
-        if (!oSockConn || oSockConn.getReadyState() != 1) {
-            aUnsentMessages.push(oMsg);
+            if (oInterval != null) {
+                window.clearTimeout(oInterval);
+            }
 
-            if (oSockConn.getReadyState() == 3) {
+            oInterval = window.setInterval(function () {
+                oThat.handleMessageFromBuffer();
+            }, 50);
+        };
+
+        /**
+         * @function
+         * @public
+         * @description Closes the WebSocket connection.
+         */
+        this.close = function () {
+            oSockConn.disconnect();
+
+            if (oInterval != null) {
+                window.clearTimeout(oInterval);
+                oInterval = null;
+            }
+        };
+
+        /**
+         * Sends a message.
+         * @function
+         * @private
+         * @param {Message} oMsg A Message.
+         * @return int The messageId.
+         */
+        this.send = function (oMsg) {
+            if (oSockConn == null) {
                 this.connect(sUrl);
             }
-            return iMsgId;
-        }
 
-        if (!oMsg.getNocache() && oMsg.getAction() == "get" && oMsg.getId() != null) {
-            if (oCache.contains(oMsg) || oCache.isValueRequested(oMsg)) {
+            var iMsgId = this.getNewMessageID(),
+                aFlags = oMsg.getFlags(),
+                sKey = null,
+                aFlag = null;
+            oMsg.setMessageId(iMsgId);
+
+            if (aFlags.length > 0) {
+                for (sKey in aFlags) {
+                    aFlag = aFlags[sKey];
+
+                    if (typeof aFlags[aFlag] != "object") {
+                        throw new DetailedError("SocketConnectionHandlerObject", "send", "Flag " + aFlag + " is not in the Flags-Array.");
+                    }
+                    if (!aFlags[aFlag].active) {
+                        aFlagBuffer[aFlag].push(oMsg);
+                        return iMsgId;
+                    }
+                }
+            }
+
+            if (!bSockConnConnected) {
+                aUnsentMessages.push(oMsg);
+                this.connect(sUrl);
                 return iMsgId;
             }
 
-            oCache.setValueIsRequested(oMsg);
-        }
+            if (!oMsg.getNocache() && oMsg.getAction() == "get" && oMsg.getId() != null) {
+                if (oCache.contains(oMsg) || oCache.isValueRequested(oMsg)) {
+                    return iMsgId;
+                }
 
-        oSockConn.send(oMsg.buildJSON());
-        oLogger.log("io", "SENT: " + oMsg.buildJSON());
+                oCache.setValueIsRequested(oMsg);
+            }
 
-        return iMsgId;
-    };
+            oSockConn.emit('sm-data', oMsg.buildJSON());
+            oLogger.log("io", "SENT: " + oMsg.buildJSON());
 
-    /**
-     * Sends a direct message.
-     * @function
-     * @private
-     * @param {String} message The message that should be send.
-     * @deprecated
-     */
-    this.sendDirect = function (message) {
-        throw new DetailedError("SocketConnectionHandler", "sendDirect", "Method is deprecated.");
-    };
+            return iMsgId;
+        };
 
-    /**
-     * Sends the content of the buffer.
-     * @function
-     * @private
-     */
-    this.sendBuffer = function () {
-        while (aUnsentMessages.length > 0) {
-            if (oSockConn.getReadyState() == 1) {
-                this.send(aUnsentMessages.shift());
+        /**
+         * Sends a direct message.
+         * @function
+         * @private
+         * @param {String} message The message that should be send.
+         * @deprecated
+         */
+        this.sendDirect = function (message) {
+            throw new DetailedError("SocketConnectionHandler", "sendDirect", "Method is deprecated.");
+        };
+
+        /**
+         * Sends the content of the buffer.
+         * @function
+         * @private
+         */
+        this.sendBuffer = function () {
+            while (aUnsentMessages.length > 0) {
+                if (bSockConnConnected) {
+                    this.send(aUnsentMessages.shift());
+                } else {
+                    return;
+                }
+            }
+        };
+
+        /**
+         * Returns a new transaction ID.
+         * @public
+         * @function
+         * @returns int The new transaction ID.
+         */
+        this.getNewMessageID = function () {
+            return iMessageId++;
+        };
+
+        /**
+         * Handles the recieved Message.
+         * @function
+         * @private
+         * @param {String} oMsg The recieved Message.
+         */
+        this.handleMessage = function (sJson) {
+            aReceivedMessageBuffer.push(Message.createInstanceFromJSON(sJson));
+        };
+
+        /**
+         * Handles a defined amount of messages from buffer.
+         * @function
+         * @private
+         */
+        this.handleMessageFromBuffer = function () {
+            var counter = 0,
+                oMsg = null,
+                iMsgId = null;
+
+            for (counter; counter < iWorkFromStackReceivedMessages; counter++) {
+                if (aReceivedMessageBuffer.length == 0) {
+                    return;
+                }
+
+                oMsg = aReceivedMessageBuffer.shift();
+                iMsgId = oMsg.getMessageId();
+                if (oMsg.hasMessageId() && typeof (aMessages[iMsgId]) == "object") {
+                    aMessages[iMsgId].callback(oMsg);
+                    aMessages.splice(iMsgId, 1);
+                } else {
+                    oCache.add(oMsg);
+                    this.dispatch(oMsg);
+                }
+            }
+
+        };
+
+        /**
+         * Registers a CallbackHandler for message results.
+         * @function
+         * @public
+         * @param {Message} oMsg The Message to register for.
+         * @param {CallbackHandler} oCbHandler The {@link CallbackHandler} to handle the result.
+         */
+        this.register = function (oMsg, oCbHandler) {
+
+            var sType = oMsg.getType(),
+                sId = oMsg.getId(),
+                iMsgId = null;
+
+            if (null == sId) {
+                sId = sListRegisteredIndex;
+            }
+
+            if (typeof (aRegisteredCallbacks[sType]) != "object") {
+                aRegisteredCallbacks[sType] = [];
+            }
+            if (typeof (aRegisteredCallbacks[sType][sId]) != "object") {
+                aRegisteredCallbacks[sType][sId] = [];
+            }
+            aRegisteredCallbacks[sType][sId].push(oCbHandler);
+
+            if (!oMsg.getNocache()) {
+                if (oCache.contains(oMsg)) {
+                    oCbHandler.callback(sType, oCache.get(oMsg));
+                } else if (!oCache.isValueRequested(oMsg)) {
+                    iMsgId = this.send(oMsg);
+                    aMessages[iMsgId] = oCbHandler;
+                }
+            }
+        };
+
+        /**
+         * Unregisters a {@link CallbackHandler} for a message.
+         * @function
+         * @public
+         * @param {Message} oMsg
+         * @param {CallbackHandler} oCbHandler
+         */
+        this.unregister = function (oMsg, oCbHandler) {
+
+            var sType = oMsg.getType(),
+                sId = oMsg.getId(),
+                iIndex;
+
+            if (null == sId) {
+                sId = sListRegisteredIndex;
+            }
+
+            if (typeof (aRegisteredCallbacks[sType]) != "object") {
+                return;
+            }
+
+            iIndex = aRegisteredCallbacks[sType][sId].indexOf(oCbHandler);
+            if (iIndex == -1) {
+                return;
+            }
+
+            aRegisteredCallbacks[sType][sId].splice(iIndex, 1);
+            if (aRegisteredCallbacks[sType][sId].length == 0) {
+                this.send(Message.createInstance({
+                    type: oMsg.getType(),
+                    id: oMsg.getId(),
+                    action: "unsub",
+                    nocache: true
+                }));
+
+                oCache.remove(oMsg);
+            }
+        };
+
+        /**
+         * Dispatches a value of the given message from the cache.
+         * @function
+         * @private
+         * @param {Message} oMsg The Message to dispatch the value from.
+         */
+        this.dispatchFromCache = function (oMsg) {
+            var cachedValue = oCache.get(oMsg),
+                index;
+
+            if (cachedValue instanceof Message) {
+                this.dispatch(cachedValue);
             } else {
-                return;
+                for (index in cachedValue) {
+                    this.dispatch(cachedValue[index]);
+                }
             }
-        }
-    };
+        };
 
-    /**
-     * Returns a new transaction ID.
-     * @public
-     * @function
-     * @returns int The new transaction ID.
-     */
-    this.getNewMessageID = function () {
-        return iMessageId++;
-    };
+        /**
+         * Dispatches an incoming message to the listener.
+         * @function
+         * @private
+         * @param {Message} oMsg The message to dispatch.
+         */
+        this.dispatch = function (oMsg) {
+            var sType = oMsg.getType(),
+                sId = oMsg.getId(),
+                sKey;
 
-    /**
-     * Handles the recieved Message.
-     * @function
-     * @private
-     * @param {String} oMsg The recieved Message.
-     */
-    this.handleMessage = function (sJson) {
-        aReceivedMessageBuffer.push(Message.createInstanceFromJSON(sJson));
-    };
-
-    /**
-     * Handles a defined amount of messages from buffer.
-     * @function
-     * @private
-     */
-    this.handleMessageFromBuffer = function () {
-        var counter = 0,
-            oMsg = null,
-            iMsgId = null;
-
-        for (counter; counter < iWorkFromStackReceivedMessages; counter++) {
-            if (aReceivedMessageBuffer.length == 0) {
-                return;
+            if (sId == null) {
+                sId = sListRegisteredIndex;
             }
 
-            oMsg = aReceivedMessageBuffer.shift();
-            iMsgId = oMsg.getMessageId();
-            if (oMsg.hasMessageId() && typeof (aMessages[iMsgId]) == "object") {
-                aMessages[iMsgId].callback(oMsg);
-                aMessages.splice(iMsgId, 1);
-            } else {
-                oCache.add(oMsg);
-                this.dispatch(oMsg);
+            if (typeof (aRegisteredCallbacks[sType][sId]) == "object") {
+                for (sKey in aRegisteredCallbacks[sType][sId]) {
+                    aRegisteredCallbacks[sType][sId][sKey].callback(oMsg);
+                }
             }
-        }
 
-    };
+        };
 
-    /**
-     * Registers a CallbackHandler for message results.
-     * @function
-     * @public
-     * @param {Message} oMsg The Message to register for.
-     * @param {CallbackHandler} oCbHandler The {@link CallbackHandler} to handle the result.
-     */
-    this.register = function (oMsg, oCbHandler) {
+        /**
+         * Adds a new flag.
+         * @public
+         * @function
+         * @param {Object} settings The setings object.
+         */
+        this.addFlag = function (settings) {
+            if (typeof settings.name == "undefined" || settings.name == "" || settings.name == " ")
+                throw new DetailedError("SocketConnectionHandlerObject", "addFlag", "The Name of the Flag must be set!");
 
-        var sType = oMsg.getType(),
-            sId = oMsg.getId(),
-            iMsgId = null;
+            settings.active = settings.active || false;
 
-        if (null == sId) {
-            sId = sListRegisteredIndex;
-        }
+            var name = settings.name;
+            delete settings.name;
 
-        if (typeof (aRegisteredCallbacks[sType]) != "object") {
-            aRegisteredCallbacks[sType] = [];
-        }
-        if (typeof (aRegisteredCallbacks[sType][sId]) != "object") {
-            aRegisteredCallbacks[sType][sId] = [];
-        }
-        aRegisteredCallbacks[sType][sId].push(oCbHandler);
+            aFlags [ name ] = settings;
+            aFlagBuffer [ name ] = [];
+            aFlagListener [ name ] = [];
+        };
 
-        if (!oMsg.getNocache()) {
-            if (oCache.contains(oMsg)) {
-                oCbHandler.callback(sType, oCache.get(oMsg));
-            } else if (!oCache.isValueRequested(oMsg)) {
-                iMsgId = this.send(oMsg);
-                aMessages[iMsgId] = oCbHandler;
-            }
-        }
-    };
+        /*
+         * settings = {
+         *     flagName: new Array("authRequired"), //required
+         *     onActive: function () {}, //required
+         *     once: true //optional
+         *     }
+         */
+        /**
+         * Adds a flag listener.
+         * @public
+         * @function
+         * @param {Object} settings
+         */
+        this.addFlagListener = function (settings) {
+            if (typeof aFlags [ settings.flagName ] == "undefined" || settings.flagname == "" || settings.flagName == " ")
+                throw new DetailedError("SocketConnectionHandlerObject", "addFlagListener", "Error: No FlagName set in settings Object or Flag not available.");
+            else if (typeof settings.onActive != "function")
+                throw new DetailedError("SocketConnectionHandlerObject", "addFlagListener", "Error: no EventHandler set of typeof parameter not a function.");
 
-    /**
-     * Unregisters a {@link CallbackHandler} for a message.
-     * @function
-     * @public
-     * @param {Message} oMsg
-     * @param {CallbackHandler} oCbHandler
-     */
-    this.unregister = function (oMsg, oCbHandler) {
+            if (typeof settings.once == "undefined")
+                settings.once = true;
 
-        var sType = oMsg.getType(),
-            sId = oMsg.getId(),
-            iIndex;
-
-        if (null == sId) {
-            sId = sListRegisteredIndex;
-        }
-
-        if (typeof (aRegisteredCallbacks[sType]) != "object") {
-            return;
-        }
-
-        iIndex = aRegisteredCallbacks[sType][sId].indexOf(oCbHandler);
-        if (iIndex == -1) {
-            return;
-        }
-
-        aRegisteredCallbacks[sType][sId].splice(iIndex, 1);
-        if (aRegisteredCallbacks[sType][sId].length == 0) {
-            this.send(Message.createInstance({
-                type: oMsg.getType(),
-                id: oMsg.getId(),
-                action: "unsub",
-                nocache: true
-            }));
-
-            oCache.remove(oMsg);
-        }
-    };
-
-    /**
-     * Dispatches a value of the given message from the cache.
-     * @function
-     * @private
-     * @param {Message} oMsg The Message to dispatch the value from.
-     */
-    this.dispatchFromCache = function (oMsg) {
-        var cachedValue = oCache.get(oMsg),
-            index;
-
-        if (cachedValue instanceof Message) {
-            this.dispatch(cachedValue);
-        } else {
-            for (index in cachedValue) {
-                this.dispatch(cachedValue[index]);
-            }
-        }
-    };
-
-    /**
-     * Dispatches an incoming message to the listener.
-     * @function
-     * @private
-     * @param {Message} oMsg The message to dispatch.
-     */
-    this.dispatch = function (oMsg) {
-        var sType = oMsg.getType(),
-            sId = oMsg.getId(),
-            sKey;
-
-        if (sId == null) {
-            sId = sListRegisteredIndex;
-        }
-
-        if (typeof (aRegisteredCallbacks[sType][sId]) == "object") {
-            for (sKey in aRegisteredCallbacks[sType][sId]) {
-                aRegisteredCallbacks[sType][sId][sKey].callback(oMsg);
-            }
-        }
-
-    };
-
-    /**
-     * Adds a new flag.
-     * @public
-     * @function
-     * @param {Object} settings The setings object.
-     */
-    this.addFlag = function (settings) {
-        if (typeof settings.name == "undefined" || settings.name == "" || settings.name == " ")
-            throw new DetailedError("SocketConnectionHandlerObject", "addFlag", "The Name of the Flag must be set!");
-
-        settings.active = settings.active || false;
-
-        var name = settings.name;
-        delete settings.name;
-
-        aFlags [ name ] = settings;
-        aFlagBuffer [ name ] = [];
-        aFlagListener [ name ] = [];
-    };
-
-    /*
-     * settings = {
-     *     flagName: new Array("authRequired"), //required
-     *     onActive: function () {}, //required
-     *     once: true //optional
-     *     }
-     */
-    /**
-     * Adds a flag listener.
-     * @public
-     * @function
-     * @param {Object} settings
-     */
-    this.addFlagListener = function (settings) {
-        if (typeof aFlags [ settings.flagName ] == "undefined" || settings.flagname == "" || settings.flagName == " ")
-            throw new DetailedError("SocketConnectionHandlerObject", "addFlagListener", "Error: No FlagName set in settings Object or Flag not available.");
-        else if (typeof settings.onActive != "function")
-            throw new DetailedError("SocketConnectionHandlerObject", "addFlagListener", "Error: no EventHandler set of typeof parameter not a function.");
-
-        if (typeof settings.once == "undefined")
-            settings.once = true;
-
-        if (aFlags [ settings.flagName ].active) {
-            settings.onActive();
-
-            if (settings.once)
-                return;
-        }
-
-        if (typeof aFlagListener [ settings.flagName ] != "object")
-            aFlagListener [ settings.flagName ] = [];
-
-        aFlagListener [ settings.flagName ].push(settings);
-
-    };
-
-    /**
-     * Removes a flag by name.
-     * @public
-     * @function
-     * @param {String} name The flag name.
-     */
-    this.removeFlag = function (name) {
-        delete aFlags [ name ];
-        delete aFlagBuffer [ name ];
-    };
-
-    /**
-     * Sets a flag by name to the given status.
-     * @public
-     * @function
-     * @param {String} name The flag name.
-     * @param {Boolean} status The status to set.
-     */
-    this.setFlag = function (name, status) {
-        aFlags [ name ].active = status;
-
-        if (status) {
-            // Send messages in Flagbuffer
-            while (aFlagBuffer [ name ].length > 0)
-                this.send(aFlagBuffer [ name ].shift());
-
-            // Call CallbackFunctions in FlagListener Array
-            var settings , endArr = [];
-            while (aFlagListener [ name ].length > 0) {
-                settings = aFlagListener [ name ].shift();
-
+            if (aFlags [ settings.flagName ].active) {
                 settings.onActive();
 
-                if (!settings.once)
-                    endArr.push(settings);
-
+                if (settings.once)
+                    return;
             }
-            aFlagListener [ name ] = endArr;
-        }
 
+            if (typeof aFlagListener [ settings.flagName ] != "object")
+                aFlagListener [ settings.flagName ] = [];
+
+            aFlagListener [ settings.flagName ].push(settings);
+
+        };
+
+        /**
+         * Removes a flag by name.
+         * @public
+         * @function
+         * @param {String} name The flag name.
+         */
+        this.removeFlag = function (name) {
+            delete aFlags [ name ];
+            delete aFlagBuffer [ name ];
+        };
+
+        /**
+         * Sets a flag by name to the given status.
+         * @public
+         * @function
+         * @param {String} name The flag name.
+         * @param {Boolean} status The status to set.
+         */
+        this.setFlag = function (name, status) {
+            aFlags [ name ].active = status;
+
+            if (status) {
+                // Send messages in Flagbuffer
+                while (aFlagBuffer [ name ].length > 0)
+                    this.send(aFlagBuffer [ name ].shift());
+
+                // Call CallbackFunctions in FlagListener Array
+                var settings , endArr = [];
+                while (aFlagListener [ name ].length > 0) {
+                    settings = aFlagListener [ name ].shift();
+
+                    settings.onActive();
+
+                    if (!settings.once)
+                        endArr.push(settings);
+
+                }
+                aFlagListener [ name ] = endArr;
+            }
+
+        };
     };
-};
+});

@@ -1,4 +1,10 @@
-var Message = function () {
+if (typeof define !== 'function') {
+    var define = require('amdefine')(module);
+}
+
+define('SocketConnectionHandler', [], function () {
+
+    var Message = function () {
     /*
      {
       "msgid": 1,                                             // Transaction ID
