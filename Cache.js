@@ -2,14 +2,14 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define('Cache', [], function () {
+define([], function () {
     /**
      * Provides a powerful cache.
      * @constructor
      * @public
      * @class Cache
      */
-    return function () {
+    var Cache = function () {
         /**
          * The cache!
          * @private
@@ -115,4 +115,6 @@ define('Cache', [], function () {
             }
         };
     };
+
+    return Cache;
 });

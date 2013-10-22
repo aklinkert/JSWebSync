@@ -1,61 +1,69 @@
-var CallbackHandler = function () {
+if (typeof define !== 'function') {
+    var define = require('amdefine')(module);
+}
 
-    var aCallbacks = {},
-        aGroupEvents = {};
+define(['jquery', 'jswebsync/DetailedError'], function (jQuery, DetailedError) {
+    var CallbackHandler = function () {
 
-    this.on = function (sEvent, fCallback) {
-        var sIndex;
+        var aCallbacks = {},
+            aGroupEvents = {};
 
-        if (null == sEvent || jQuery.trim(sEvent) == "") {
-            throw new DetailedError("CallbackHandler", "on", "event is empty or null");
-        }
+        this.on = function (sEvent, fCallback) {
+            var sIndex;
 
-        if (typeof (aGroupEvents[sEvent]) == "object") {
-            for (sIndex in aGroupEvents[sEvent]) {
-                this.on(aGroupEvents[sEvent][sIndex], fCallback);
-            }
-        } else {
-            if (typeof (aCallbacks[sEvent]) != "object") {
-                aCallbacks[sEvent] = [];
+            if (null == sEvent || jQuery.trim(sEvent) == "") {
+                throw new DetailedError("CallbackHandler", "on", "event is empty or null");
             }
 
-            aCallbacks[sEvent].push(fCallback);
-        }
+            if (typeof (aGroupEvents[sEvent]) == "object") {
+                for (sIndex in aGroupEvents[sEvent]) {
+                    this.on(aGroupEvents[sEvent][sIndex], fCallback);
+                }
+            } else {
+                if (typeof (aCallbacks[sEvent]) != "object") {
+                    aCallbacks[sEvent] = [];
+                }
 
-        return this;
+                aCallbacks[sEvent].push(fCallback);
+            }
+
+            return this;
+        };
+
+        this.callback = function (oMsg, event) {
+            var sIndex,
+                sEvent = event || oMsg.getAction();
+
+            if (null == sEvent || jQuery.trim(sEvent) == "") {
+                throw new DetailedError("CallbackHandler", "on", "event is empty or null");
+            }
+
+            if (typeof (aGroupEvents[sEvent]) == "object") {
+                for (sIndex in aGroupEvents[sEvent]) {
+                    this.callback(oMsg, aGroupEvents[sEvent][sIndex]);
+                }
+            } else if (typeof (aCallbacks[sEvent]) == "object") {
+                for (sIndex in aCallbacks[sEvent]) {
+                    aCallbacks[sEvent][sIndex](oMsg.getData());
+                }
+            }
+
+            return this;
+        };
+
+        this.addGroupEvent = function (sGroupEvent, aEvents) {
+            if (null == sGroupEvent || jQuery.trim(sGroupEvent) == "") {
+                throw new DetailedError("CallbackHandler", "addGroupEvent", "group event is empty or null");
+            }
+            if (null == aEvents || typeof aEvents != "object" || 0 == aEvents.length) {
+                throw new DetailedError("CallbackHandler", "addGroupEvent", "group event is empty or null or not an array");
+            }
+
+            aGroupEvents[sGroupEvent] = aEvents;
+
+            return this;
+        };
     };
 
-    this.callback = function (oMsg, event) {
-        var sIndex,
-            sEvent = event || oMsg.getAction();
-
-        if (null == sEvent || jQuery.trim(sEvent) == "") {
-            throw new DetailedError("CallbackHandler", "on", "event is empty or null");
-        }
-
-        if (typeof (aGroupEvents[sEvent]) == "object") {
-            for (sIndex in aGroupEvents[sEvent]) {
-                this.callback(oMsg, aGroupEvents[sEvent][sIndex]);
-            }
-        } else if (typeof (aCallbacks[sEvent]) == "object") {
-            for (sIndex in aCallbacks[sEvent]) {
-                aCallbacks[sEvent][sIndex](oMsg.getData());
-            }
-        }
-
-        return this;
-    };
-
-    this.addGroupEvent = function (sGroupEvent, aEvents) {
-        if (null == sGroupEvent || jQuery.trim(sGroupEvent) == "") {
-            throw new DetailedError("CallbackHandler", "addGroupEvent", "group event is empty or null");
-        }
-        if (null == aEvents || typeof aEvents != "object" || 0 == aEvents.length) {
-            throw new DetailedError("CallbackHandler", "addGroupEvent", "group event is empty or null or not an array");
-        }
-
-        aGroupEvents[sGroupEvent] = aEvents;
-
-        return this;
-    };
-};
+    return CallbackHandler;
+});

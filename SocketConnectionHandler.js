@@ -2,7 +2,7 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define('SocketConnectionHandler', ['Cache', 'Message', 'Logger', 'socketio'], function (Cache, Message, Logger, io) {
+define(['jswebsync/DetailedError', 'jswebsync/Cache', 'jswebsync/Message', 'jswebsync/Logger', 'socketio'], function (DetailedError, Cache, Message, Logger, io) {
 
     /**
      * A class to provide message halding, caching and a registration system for updates.
@@ -21,118 +21,118 @@ define('SocketConnectionHandler', ['Cache', 'Message', 'Logger', 'socketio'], fu
          */
         var oThat = this,
 
-            /**
-             * Stores the url to connect to.
-             * @private
-             * @default String
-             */
-                sUrl = url,
+        /**
+         * Stores the url to connect to.
+         * @private
+         * @default String
+         */
+            sUrl = url,
 
-            /**
-             * Socket.IO Connection instance.
-             * @private
-             * @default WebSocket
-             */
-                oSockConn = null,
+        /**
+         * Socket.IO Connection instance.
+         * @private
+         * @default WebSocket
+         */
+            oSockConn = null,
 
-            /**
-             * Stores the state if socket.io is connected or not.
-             * @private
-             * @default Boolean
-             */
-                bSockConnConnected = false,
+        /**
+         * Stores the state if socket.io is connected or not.
+         * @private
+         * @default Boolean
+         */
+            bSockConnConnected = false,
 
-            /**
-             * Stores all callbacks.
-             * @private
-             * @default Array
-             */
-                aRegisteredCallbacks = [],
+        /**
+         * Stores all callbacks.
+         * @private
+         * @default Array
+         */
+            aRegisteredCallbacks = [],
 
-            /**
-             * Stores the index name of list listener.
-             * @private
-             * @type {string}
-             * @default string
-             */
-                sListRegisteredIndex = "listListener",
+        /**
+         * Stores the index name of list listener.
+         * @private
+         * @type {string}
+         * @default string
+         */
+            sListRegisteredIndex = "listListener",
 
-            /**
-             * Buffer for unset messages.
-             * @private
-             * @default Array
-             */
-                aUnsentMessages = [],
+        /**
+         * Buffer for unset messages.
+         * @private
+         * @default Array
+         */
+            aUnsentMessages = [],
 
-            /**
-             * Buffer for incoming messages.
-             * @private
-             * @default Array
-             */
-                aReceivedMessageBuffer = [],
+        /**
+         * Buffer for incoming messages.
+         * @private
+         * @default Array
+         */
+            aReceivedMessageBuffer = [],
 
-            /**
-             * How many messages shall be procedured.
-             * @private
-             * @default Integer
-             */
-                iWorkFromStackReceivedMessages = 10,
+        /**
+         * How many messages shall be procedured.
+         * @private
+         * @default Integer
+         */
+            iWorkFromStackReceivedMessages = 10,
 
-            /**
-             * Instance of {@link Cache} to cache messages.
-             * @private
-             * @default Cache
-             */
-                oCache = new Cache(),
+        /**
+         * Instance of {@link Cache} to cache messages.
+         * @private
+         * @default Cache
+         */
+            oCache = new Cache(),
 
-            /**
-             * Stores transaction callbacks.
-             * @private
-             * @default Array
-             */
-                aMessages = [],
+        /**
+         * Stores transaction callbacks.
+         * @private
+         * @default Array
+         */
+            aMessages = [],
 
-            /**
-             * The actual message ID.
-             * @private
-             * @default Integer
-             */
-                iMessageId = 0,
+        /**
+         * The actual message ID.
+         * @private
+         * @default Integer
+         */
+            iMessageId = 0,
 
-            /**
-             * Flag store.
-             * @private
-             * @default Array
-             */
-                aFlags = [],
+        /**
+         * Flag store.
+         * @private
+         * @default Array
+         */
+            aFlags = [],
 
-            /**
-             * The flag buffer stores messages that are unsent cause of inactive flag state.
-             * @private
-             * @default Array
-             */
-                aFlagBuffer = [],
+        /**
+         * The flag buffer stores messages that are unsent cause of inactive flag state.
+         * @private
+         * @default Array
+         */
+            aFlagBuffer = [],
 
-            /**
-             * Stores the flag listener that wait for flag state change.
-             * @private
-             * @default Array
-             */
-                aFlagListener = [],
+        /**
+         * Stores the flag listener that wait for flag state change.
+         * @private
+         * @default Array
+         */
+            aFlagListener = [],
 
-            /**
-             * Stores the interval to complete the messages.
-             * @private
-             * @default Null
-             */
-                oInterval = null,
+        /**
+         * Stores the interval to complete the messages.
+         * @private
+         * @default Null
+         */
+            oInterval = null,
 
-            /**
-             * Logger instance store.
-             * @private
-             * @default Logger
-             */
-                oLogger = (logger instanceof Logger) ? logger : new Logger();
+        /**
+         * Logger instance store.
+         * @private
+         * @default Logger
+         */
+            oLogger = (logger instanceof Logger) ? logger : new Logger();
 
         /**
          * Establishes a WebSocket connection to the given url.
