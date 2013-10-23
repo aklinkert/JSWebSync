@@ -2,7 +2,7 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define(['jquery'], function (jQuery) {
+define([], function () {
     var Message = function () {
         /*
          {
@@ -161,7 +161,7 @@ define(['jquery'], function (jQuery) {
     };
 
     Message.createInstanceFromJSON = function (sJson) {
-        return Message.createInstance(jQuery.parseJSON(sJson));
+        return Message.createInstance(JSON.parse(sJson));
     };
 
     return Message;
