@@ -6,7 +6,7 @@ define([
     './DetailedError',
     './Cache',
     './Message',
-    'socketio'
+    'socket.io'
 ], function (DetailedError, Cache, Message, io) {
 
     /**
