@@ -7,7 +7,7 @@
     },
     "dependencies": {
         "socket.io": "0.9.x",
-		"jquery": "1.x.x"
+		"jQuery": "1.x.x"
     },
     "main": "WebSync.js",
 	"private": true,
