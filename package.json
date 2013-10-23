@@ -8,5 +8,6 @@
     "dependencies": {
         "socket.io": "0.9.x"
     },
-    "main": "Module.js"
+    "main": "WebSync.js",
+	"private": true 
 }
