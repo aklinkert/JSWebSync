@@ -2,7 +2,13 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define(['jswebsync/DetailedError', 'jswebsync/Cache', 'jswebsync/Message', 'jswebsync/Logger', 'socketio'], function (DetailedError, Cache, Message, Logger, io) {
+define([
+    './DetailedError',
+    './Cache',
+    './Message',
+    './Logger',
+    'socketio'
+], function (DetailedError, Cache, Message, Logger, io) {
 
     /**
      * A class to provide message halding, caching and a registration system for updates.

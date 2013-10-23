@@ -2,7 +2,7 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define(['jquery', 'jswebsync/DetailedError'], function (jQuery, DetailedError) {
+define(['jquery', './DetailedError'], function (jQuery, DetailedError) {
     var CallbackHandler = function () {
 
         var aCallbacks = {},

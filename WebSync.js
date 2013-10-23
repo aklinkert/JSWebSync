@@ -3,12 +3,12 @@ if (typeof define !== 'function') {
 }
 
 define([
-    'jswebsync/Message',
-    'jswebsync/Cache',
-    'jswebsync/Logger',
-    'jswebsync/SocketConnectionHandler',
-    'jswebsync/CallbackHandler',
-    'jswebsync/DetailedError'
+    './Message',
+    './Cache',
+    './Logger',
+    './SocketConnectionHandler',
+    './CallbackHandler',
+    './DetailedError'
 ], function (Message, Cache, Logger, SocketConnectionHandler, CallbackHandler, DetailedError ) {
     return {
         'Message': Message,
