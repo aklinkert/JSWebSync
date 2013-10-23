@@ -2,7 +2,7 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define(['stacktrace'], function (stacktrace) {
+define(['stacktrace-js'], function (stacktrace) {
     /**
      * @class
      * @constructor

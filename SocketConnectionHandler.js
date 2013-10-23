@@ -6,9 +6,8 @@ define([
     './DetailedError',
     './Cache',
     './Message',
-    './Logger',
     'socketio'
-], function (DetailedError, Cache, Message, Logger, io) {
+], function (DetailedError, Cache, Message, io) {
 
     /**
      * A class to provide message halding, caching and a registration system for updates.
@@ -18,12 +17,14 @@ define([
      * @param {Logger} logger The Logger instance to use or null if none shall be used.
      * @class SocketConnectionHandler Provides methods to register, unregister, cache and handle messages.
      */
-    return function (url, logger) {
+    return function (url) {
         'use strict';
 
         /**
-         * Stores a local reference to this object for unse in callbacks and other ananonymous functions.
+         * Stores a local reference to this object for use in callbacks and other anonymous functions.
+         * @private
          * @type {SocketConnectionHandler}
+         * @default SocketConnectionHandler
          */
         var oThat = this,
 
@@ -131,14 +132,7 @@ define([
          * @private
          * @default Null
          */
-            oInterval = null,
-
-        /**
-         * Logger instance store.
-         * @private
-         * @default Logger
-         */
-            oLogger = (logger instanceof Logger) ? logger : new Logger();
+            oInterval = null;
 
         /**
          * Establishes a WebSocket connection to the given url.
@@ -160,23 +154,23 @@ define([
              oSockConn.connectionHandler = this;
 
              oSockConn.onopen = function () {
-             oLogger.log("io", " CONNECTED: " + sUrl);
+             console.log(" CONNECTED: " + sUrl);
 
              this.connectionHandler.sendBuffer();
              };
 
              oSockConn.onclose = function (event) {
-             oLogger.log("io", " DISCONNECTED: " + event);
+             console.log(" DISCONNECTED: " + event);
              };
 
              oSockConn.onmessage = function (event) {
-             oLogger.log("io", "GOT: " + event.data);
+             console.log("GOT: " + event.data);
 
              this.connectionHandler.handleMessage(event.data);
              };
 
              oSockConn.onerror = function (event) {
-             oLogger.log("io", "ERROR:" + event.data);
+             console.log("ERROR:" + event.data);
              };
 
              oSockConn.getReadyState = function () {
@@ -188,15 +182,15 @@ define([
             if (oSockConn == null) {
                 oSockConn = io.connect(sUrl);
                 oSockConn.on('connect', function () {
-                    oLogger.log("io", " CONNECTED: " + sUrl);
+                    console.log(" CONNECTED: " + sUrl);
 
                     oSockConn.on('sm-data', function (data) {
-                        oLogger.log("io", "GOT: " + data);
+                        console.log("GOT: " + data);
 
                         oThat.handleMessage(data);
                     });
                     oSockConn.on('disconnect', function () {
-                        oLogger.log("io", " DISCONNECTED: " + event);
+                        console.log(" DISCONNECTED: " + event);
                         bSockConnConnected = false;
 
                         if (oInterval != null) {
@@ -205,7 +199,7 @@ define([
                         }
                     });
                     oSockConn.on('error', function () {
-                        oLogger.log("io", "ERROR:" + event.data);
+                        console.log("ERROR:" + event.data);
                     });
 
                     bSockConnConnected = true;
@@ -285,7 +279,7 @@ define([
             }
 
             oSockConn.emit('sm-data', oMsg.buildJSON());
-            oLogger.log("io", "SENT: " + oMsg.buildJSON());
+            console.log("SENT: " + oMsg.buildJSON());
 
             return iMsgId;
         };

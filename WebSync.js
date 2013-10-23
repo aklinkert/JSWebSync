@@ -5,16 +5,14 @@ if (typeof define !== 'function') {
 define([
     './Message',
     './Cache',
-    './Logger',
     './SocketConnectionHandler',
     './CallbackHandler',
     './DetailedError'
-], function (Message, Cache, Logger, SocketConnectionHandler, CallbackHandler, DetailedError ) {
+], function (Message, Cache, SocketConnectionHandler, CallbackHandler, DetailedError ) {
     return {
         'Message': Message,
         'Cache': Cache,
         'SocketConnectionHandler': SocketConnectionHandler,
-        'Logger': Logger,
         'DetailedError': DetailedError,
         'CallbackHandler': CallbackHandler
     };

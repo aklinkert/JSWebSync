@@ -2,7 +2,7 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define(['jquery', './DetailedError'], function (jQuery, DetailedError) {
+define(['./DetailedError'], function (DetailedError) {
     var CallbackHandler = function () {
 
         var aCallbacks = {},
@@ -11,7 +11,7 @@ define(['jquery', './DetailedError'], function (jQuery, DetailedError) {
         this.on = function (sEvent, fCallback) {
             var sIndex;
 
-            if (null == sEvent || jQuery.trim(sEvent) == "") {
+            if (null == sEvent || sEvent == "") {
                 throw new DetailedError("CallbackHandler", "on", "event is empty or null");
             }
 
@@ -34,7 +34,7 @@ define(['jquery', './DetailedError'], function (jQuery, DetailedError) {
             var sIndex,
                 sEvent = event || oMsg.getAction();
 
-            if (null == sEvent || jQuery.trim(sEvent) == "") {
+            if (null == sEvent || sEvent == "") {
                 throw new DetailedError("CallbackHandler", "on", "event is empty or null");
             }
 
@@ -52,7 +52,7 @@ define(['jquery', './DetailedError'], function (jQuery, DetailedError) {
         };
 
         this.addGroupEvent = function (sGroupEvent, aEvents) {
-            if (null == sGroupEvent || jQuery.trim(sGroupEvent) == "") {
+            if (null == sGroupEvent || sGroupEvent == "") {
                 throw new DetailedError("CallbackHandler", "addGroupEvent", "group event is empty or null");
             }
             if (null == aEvents || typeof aEvents != "object" || 0 == aEvents.length) {
