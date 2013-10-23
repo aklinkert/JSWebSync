@@ -6,8 +6,11 @@
         "coffee-script": "1.6.x"
     },
     "dependencies": {
-        "socket.io": "0.9.x"
+        "socket.io": "0.9.x",
+		"jquery": "1.x.x"
     },
     "main": "WebSync.js",
-	"private": true 
+	"private": true,
+	"readme": "JSWebSync\n=========\n\nSmall framework for dynamical site construction and hierarchic site structure using data from WebSocket.",
+  "readmeFilename": "README.md"
 }
