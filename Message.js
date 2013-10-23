@@ -95,7 +95,7 @@ define([], function () {
         };
 
         this.setData = function (data) {
-            sType = data;
+            oData = data;
         };
 
         this.getData = function () {
